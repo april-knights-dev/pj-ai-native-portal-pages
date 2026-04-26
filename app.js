@@ -1259,6 +1259,11 @@ function renderMemberPage() {
 
 // ─── 評価スコア ─────────────────────────────────────────────────
 
+function nameMatch_(a, b) {
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a);
+}
+
 function getMemberTeam(name) {
   if (!D || !D.cohort || !Array.isArray(D.cohort.teams)) return '';
   for (const team of D.cohort.teams) {
@@ -1305,8 +1310,7 @@ function renderEvalPage() {
   const role    = D.role;
   const isAdmin = role === 'admin';
   const myName  = D.member_name || '';
-  console.log('[eval] role:', role, '| member_name:', JSON.stringify(myName), '| email:', D.email, '| allMembers:', allMembers);
-  const members = isAdmin ? allMembers : allMembers.filter(m => m === myName);
+  const members = isAdmin ? allMembers : allMembers.filter(m => nameMatch_(m, myName));
   const colSpan = isAdmin ? 7 : 6;
   let html = '<table><tr><th>メンバー</th><th>チーム</th><th>評価者</th><th>Before平均</th><th>After平均</th><th>成長幅</th>';
   if (role === 'admin') html += '<th>判定 <span style="font-size:11px;font-weight:400;color:#8991A9">※Before評価の内容確認済みをマーク</span></th>';
@@ -1768,7 +1772,7 @@ function renderSelfEvalPage() {
   const isAdmin = D.role === 'admin';
   const myName  = D.member_name || '';
   const selfEval = D.eval.filter(r =>
-    r.evaluator_type === '本人評価' && (isAdmin || r.evaluatee === myName)
+    r.evaluator_type === '本人評価' && (isAdmin || nameMatch_(r.evaluatee, myName))
   );
   let html = '<table><tr><th>メンバー</th><th>タイミング</th><th>上流工程力</th><th>実装技術力</th><th>AI活用力</th><th>チームコミュ</th></tr>';
   selfEval.forEach(r => {
