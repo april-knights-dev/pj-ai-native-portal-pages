@@ -984,6 +984,16 @@ function approveEval(evaluatee, timing, btn) {
 
 // ─── ゲーミフィケーション ─────────────────────────────────────
 
+// week_start がシート上でDate型になりJSON化でISO文字列になるケースを正規化して 'YYYY-MM-DD' に揃える
+function normalizeWeek_(ws) {
+  if (!ws) return '';
+  const s = String(ws);
+  if (s.length <= 10) return s;
+  // "2026-04-20T15:00:00.000Z" → JST (UTC+9) に戻して日付部分を取る
+  const d = new Date(new Date(s).getTime() + 9 * 3600 * 1000);
+  return d.toISOString().slice(0, 10);
+}
+
 function renderGamificationPage() {
   const members = [...new Set(D.github.map(r=>r.member))].sort();
   const points  = members.map(m => {
@@ -1011,24 +1021,37 @@ function renderGamificationPage() {
       chartArea: { left:120, right:10, top:10, bottom:20 },
     });
 
-  const weeks = [...new Set(D.github.map(r=>r.week_start))].sort();
+  // week_start を正規化してから一意週リストを作成（型不整合対策）
+  const weeks = [...new Set(D.github.map(r=>normalizeWeek_(r.week_start)))].sort();
   const streakRows = [['メンバー','連続活動週数']];
   members.forEach(m => {
-    let streak = 0;
-    for (let i=weeks.length-1; i>=0; i--) {
-      const active = D.github.some(r=>r.week_start===weeks[i]&&r.member===m&&(r.commits||0)>0)
-                  || D.gchat.some(r=>r.week_start===weeks[i]&&r.member===m&&(r.messages_sent||0)>0);
-      if (active) streak++; else break;
+    let streak = 0, started = false;
+    for (let i = weeks.length - 1; i >= 0; i--) {
+      const w = weeks[i];
+      const active = D.github.some(r => normalizeWeek_(r.week_start) === w && r.member === m && (r.commits || 0) > 0)
+                  || D.gchat.some(r => normalizeWeek_(r.week_start) === w && r.member === m && (r.messages_sent || 0) > 0);
+      if (active) { started = true; streak++; }
+      else if (started) break;
+      // started=false かつ inactive → まだ活動開始前の週なのでスキップ
     }
     streakRows.push([m, streak]);
   });
-  new google.visualization.BarChart(document.getElementById('chart_streak'))
-    .draw(google.visualization.arrayToDataTable(streakRows), {
-      colors: [TEAM_COLOR.B],
-      legend: 'none',
-      backgroundColor: 'transparent',
-      chartArea: { left:60, right:10, top:10, bottom:20 },
-    });
+
+  const allZero = streakRows.slice(1).every(r => r[1] === 0);
+  if (allZero) {
+    document.getElementById('chart_streak').innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#8991A9;font-size:14px;text-align:center;flex-direction:column;gap:6px">' +
+      '<span>まだ連続活動データが蓄積されていません</span>' +
+      '<span style="font-size:12px">GitHub コミットまたは Chat 投稿が記録されると表示されます</span></div>';
+  } else {
+    new google.visualization.BarChart(document.getElementById('chart_streak'))
+      .draw(google.visualization.arrayToDataTable(streakRows), {
+        colors: [TEAM_COLOR.B],
+        legend: 'none',
+        backgroundColor: 'transparent',
+        chartArea: { left:60, right:10, top:10, bottom:20 },
+      });
+  }
 
   let html = '<table><tr><th>順位</th><th>メンバー</th><th>チーム</th><th>総合PT</th>' +
     '<th>コミット×3</th><th>PR×5</th><th>レビュー×4</th><th>Chat×1</th><th>タスク×4</th></tr>';
