@@ -1,17 +1,16 @@
-<svg width="246" height="246" viewBox="0 0 246 246" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M123.014 14.0291L122.986 14.0727L108.189 119.809L162.153 162.164L199.456 147.024L123.014 14.0291Z" fill="#24252D"/>
-<path d="M98.6575 187.94L0.0289276 227.956L0 228H246L245.971 227.942L162.168 162.164L98.6575 187.94Z" fill="#24252D"/>
-<path d="M245.971 227.942L199.47 147.023L162.168 162.164L245.971 227.942Z" fill="url(#paint0_linear)"/>
-<path d="M0.0289276 227.956L98.6575 187.94L108.189 119.809L122.986 14.0727L122.986 14L0.0289276 227.956Z" fill="url(#paint1_linear)"/>
-<path fill-rule="evenodd" clip-rule="evenodd" d="M122.993 14L123.036 14.0731L123.08 14L242.557 221.83H242.543L246 227.868H245.942L245.986 227.941H98.3161V228H0.0289293L0.0578585 227.941H0L122.993 14ZM125.408 34.4979L189.226 145.511L160.586 157.134L113.432 120.13L125.423 34.5125L125.408 34.4979ZM112.115 129.443L151.893 160.658L105.086 179.65L112.115 129.458V129.443ZM159.27 166.448L27.9312 219.725H227.167L159.27 166.448Z" fill="#FFFFFF"/>
-<defs>
-<linearGradient id="paint0_linear" x1="123" y1="-337.915" x2="123" y2="228.5" gradientUnits="userSpaceOnUse">
-<stop stop-color="#6AB7F4"/>
-<stop offset="1" stop-color="#A496FB"/>
-</linearGradient>
-<linearGradient id="paint1_linear" x1="61.5147" y1="14" x2="61.5147" y2="228.189" gradientUnits="userSpaceOnUse">
-<stop stop-color="#6AB7F4"/>
-<stop offset="1" stop-color="#A496FB"/>
-</linearGradient>
-</defs>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 44 39" aria-hidden="true">
+  <path fill="#24252D" d="m21.591.006-.005.008-2.597 18.89 9.472 7.567 6.547-2.705z"/>
+  <path fill="#24252D" d="M17.316 31.076.006 38.225 0 38.233h43.178l-.005-.01-14.71-11.752z"/>
+  <path fill="url(#ak-logo-a)" d="m43.173 38.222-8.162-14.456-6.547 2.705z"/>
+  <path fill="url(#ak-logo-b)" d="m.005 38.224 17.311-7.149 1.673-12.172L21.586.013V0z"/>
+  <defs>
+    <linearGradient id="ak-logo-a" x1="35.818" x2="35.818" y1="-0.007" y2="38.256" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6AB7F4"/>
+      <stop offset="1" stop-color="#A496FB"/>
+    </linearGradient>
+    <linearGradient id="ak-logo-b" x1="10.797" x2="10.797" y1="0" y2="38.266" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6AB7F4"/>
+      <stop offset="1" stop-color="#A496FB"/>
+    </linearGradient>
+  </defs>
 </svg>

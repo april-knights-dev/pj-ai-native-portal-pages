@@ -138,17 +138,14 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: #fff;
-  border: 1px solid rgba(82, 126, 236, 0.12);
-  box-shadow: 0 8px 20px rgba(36, 37, 45, 0.08);
+  width: 44px;
+  height: 39px;
+  flex: 0 0 auto;
 }
 
 .brand-mark img {
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 39px;
   display: block;
 }
 
@@ -958,14 +955,13 @@ tr:hover td {
   }
 
   .brand-mark {
-    width: 46px;
-    height: 46px;
-    border-radius: 16px;
+    width: 38px;
+    height: 34px;
   }
 
   .brand-mark img {
-    width: 30px;
-    height: 30px;
+    width: 38px;
+    height: 34px;
   }
 
   .site-header-actions,
