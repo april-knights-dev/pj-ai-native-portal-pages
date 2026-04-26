@@ -937,7 +937,7 @@ function renderEvalPage() {
         const btnClass = approved ? 'approved-btn done' : 'approved-btn';
         const disabled  = approved ? ' disabled' : '';
         const tip = 'Before評価の内容を管理者が確認済みであることを記録します（確認後は変更不可）';
-        html += `<td><button class="${btnClass}"${disabled} title="${tip}" onclick="approveEval('${m}','before')">${approved?'確認済み':'確認する'}</button></td>`;
+        html += `<td><button class="${btnClass}"${disabled} title="${tip}" onclick="approveEval('${m}','before',this)">${approved?'確認済み':'確認する'}</button></td>`;
       }
       html += '</tr>';
     });
@@ -946,7 +946,12 @@ function renderEvalPage() {
   document.getElementById('evalTable').innerHTML = html;
 }
 
-function approveEval(evaluatee, timing) {
+function approveEval(evaluatee, timing, btn) {
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '確認中...';
+    btn.classList.add('loading');
+  }
   const token = localStorage.getItem(TOKEN_KEY);
   const url = GAS_API_URL + '?action=approve&evaluatee=' + encodeURIComponent(evaluatee) +
     '&timing=' + encodeURIComponent(timing) + '&token=' + encodeURIComponent(token);
@@ -954,9 +959,25 @@ function approveEval(evaluatee, timing) {
     .then(r => r.json())
     .then(res => {
       if (res.success) {
-        fetchData(token); // データ再取得
+        if (btn) {
+          btn.classList.remove('loading');
+          btn.classList.add('done');
+          btn.textContent = '確認済み';
+        }
       } else {
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove('loading');
+          btn.textContent = '確認する';
+        }
         alert('承認エラー: ' + (res.error || '不明なエラー'));
+      }
+    })
+    .catch(() => {
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('loading');
+        btn.textContent = '確認する';
       }
     });
 }
