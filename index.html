@@ -399,15 +399,20 @@
           <h2>使用状況トラッキングの導入</h2>
           <p class="overview-copy">
             各メンバーの Claude Code セッション終了時に使用状況（トークン・スキル・サブエージェント）を自動収集します。<br>
-            以下のコマンドを<strong>メンバーの Mac 上で 1 回だけ</strong>実行してください。
+            以下のコマンドを<strong>メンバーの PC で 1 回だけ</strong>実行してください。Python 3 が必要です。
           </p>
           <div class="setup-block">
             <div class="setup-step">
               <span class="setup-step-num">1</span>
               <div>
-                <strong>Stop hook をインストール</strong>
-                <p>ターミナルで以下を実行します。<code>~/.claude/settings.json</code> に Stop hook が自動追加されます。</p>
+                <strong>Stop hook をインストール（OS を選んで実行）</strong>
+                <p><strong>Mac / Linux</strong>（ターミナル）</p>
                 <pre class="code-block">curl -fsSL https://april-knights-dev.github.io/pj-ai-native-portal-pages/setup-claude-hook.sh | bash</pre>
+                <p style="margin-top:12px"><strong>Windows</strong>（PowerShell）</p>
+                <pre class="code-block">iex (iwr 'https://april-knights-dev.github.io/pj-ai-native-portal-pages/setup-claude-hook.ps1' -UseBasicParsing).Content</pre>
+                <p style="margin-top:8px;font-size:13px;color:var(--text-soft)">
+                  実行すると <code>~/.claude/settings.json</code> に Stop hook が自動追加されます。
+                </p>
               </div>
             </div>
             <div class="setup-step">
