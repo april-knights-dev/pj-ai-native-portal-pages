@@ -385,17 +385,17 @@ function renderOverviewPage() {
     <span class="section-kicker">Evaluation Policy</span>
     <h2>評価について</h2>
     <p class="overview-copy">
-      評価はスキルの <strong>成長幅（After − Before）</strong> で行います。スタート地点は問いません。<br>
-      施策責任者・チームリーダー・本人の 3 者評価で最終スコアを算出します。
+      本施策の評価は、参加メンバーを序列化するためではなく、<strong>成長の可視化と次の育成支援</strong> に活用する前提で扱います。<br>
+      施策責任者・チームリーダー・本人の 3 者評価をもとに、振り返り、次期アサイン、施策改善の参考情報として整理します。<br>
+      なお、本施策のスコアだけで人事評価や処遇を決めるのではなく、日常業務での成果や上長評価とあわせて補助的に扱う想定です。
     </p>
     <table>
       <tr><th>タイミング</th><th>内容</th></tr>
-      <tr><td>Before（4月初旬）</td><td>キックオフ時の自己評価</td></tr>
-      <tr><td>Mid-check（4月末）</td><td>Phase 1 完了後の中間確認</td></tr>
-      <tr><td>After（6月末）</td><td>3者評価による最終スコア</td></tr>
+      <tr><td>Before（施策開始前）</td><td>開始時点の自己評価・期待値確認</td></tr>
+      <tr><td>After（施策終了後）</td><td>3者評価による振り返りと成長確認</td></tr>
     </table>
     <p class="overview-note">
-      最終スコア = (本人 + チームリーダー + 施策責任者) ÷ 3　｜　成長スコア = After − Before
+      最終スコア = (本人 + チームリーダー + 施策責任者) ÷ 3　｜　成長スコア = After − Before　｜　主用途 = 振り返り・次期育成支援・施策改善
     </p>
   </div>`;
 }
