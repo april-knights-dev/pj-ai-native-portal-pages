@@ -134,6 +134,12 @@ select {
   margin-bottom: 28px;
 }
 
+.brand-lockup {
+  display: block;
+  width: min(100%, 248px);
+  height: auto;
+}
+
 .brand-mark {
   display: inline-flex;
   align-items: center;
@@ -952,6 +958,10 @@ tr:hover td {
   .brand-row,
   .site-header-main {
     align-items: flex-start;
+  }
+
+  .brand-lockup {
+    width: min(100%, 208px);
   }
 
   .brand-mark {
