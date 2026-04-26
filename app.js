@@ -1305,6 +1305,7 @@ function renderEvalPage() {
   const role    = D.role;
   const isAdmin = role === 'admin';
   const myName  = D.member_name || '';
+  console.log('[eval] role:', role, '| member_name:', JSON.stringify(myName), '| email:', D.email, '| allMembers:', allMembers);
   const members = isAdmin ? allMembers : allMembers.filter(m => m === myName);
   const colSpan = isAdmin ? 7 : 6;
   let html = '<table><tr><th>メンバー</th><th>チーム</th><th>評価者</th><th>Before平均</th><th>After平均</th><th>成長幅</th>';
