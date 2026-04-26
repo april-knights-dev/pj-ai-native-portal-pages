@@ -1226,13 +1226,13 @@ function renderSelfEvalPage() {
     let ahtml = '<table><tr><th>メンバー</th><th>チーム</th><th>評価者タイプ</th><th>タイミング</th>' +
       '<th>上流工程力</th><th>実装技術力</th><th>AI活用力</th><th>チームコミュ</th><th>承認</th></tr>';
     D.eval.forEach(r => {
-      const team     = r.team || '';
+      const team     = getMemberTeam(r.evaluatee);
       const approved = r.admin_approved;
-      ahtml += `<tr><td>${r.evaluatee}</td><td><span class="badge badge-${team.toLowerCase()}">${team}</span></td>` +
+      ahtml += `<tr><td>${r.evaluatee}</td><td><span class="badge badge-${team.toLowerCase()}">${team || '?'}</span></td>` +
         `<td>${r.evaluator_type}</td><td>${r.timing}</td>` +
         `<td>${r.axis1_avg||'-'}</td><td>${r.axis2_avg||'-'}</td><td>${r.axis3_avg||'-'}</td><td>${r.axis4_avg||'-'}</td>` +
         `<td><button class="approved-btn${approved?' done':''}" ` +
-        `onclick="approveEval('${r.evaluatee}','${r.timing}')"${approved?' disabled':''}>${approved?'済':'承認'}</button></td></tr>`;
+        `onclick="approveEval('${r.evaluatee}','${r.timing}',this)"${approved?' disabled':''}>${approved?'確認済み':'確認する'}</button></td></tr>`;
     });
     if (!D.eval.length) ahtml += '<tr><td colspan="9" style="color:#8991A9;text-align:center">評価データがまだありません</td></tr>';
     ahtml += '</table>';
