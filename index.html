@@ -211,6 +211,16 @@
         <div id="viewer-notice" class="notice" style="display:none">
           集計データはチーム単位で表示しています。個人データは参加メンバーのみ閲覧できます。
         </div>
+        <div id="summary-ai-insights" class="card ai-insights-card">
+          <div class="ai-insights-head">
+            <div>
+              <span class="section-kicker">AI Insights</span>
+              <h2>今週のAIインサイト</h2>
+            </div>
+            <span id="ai-insights-meta" class="chart-meta">データ待ち</span>
+          </div>
+          <div id="ai-insights-content" class="ai-insights-list"></div>
+        </div>
         <div class="summary-banner">
           <div>
             <span class="section-kicker">Weekly Snapshot</span>
@@ -267,6 +277,18 @@
         </div>
       </div>
 
+      <!-- PAGE: 成果物 -->
+      <div id="page_artifacts" class="page">
+        <div class="summary-banner">
+          <div>
+            <span class="section-kicker">Deliverables Catalog</span>
+            <h2>成果物</h2>
+            <p>チームごとの成果物リンクをまとめています。公開範囲に応じて表示内容が変わります。</p>
+          </div>
+        </div>
+        <div id="artifacts-content"></div>
+      </div>
+
       <!-- PAGE: 個人アクティビティ -->
       <div id="page_member" class="page">
         <div class="filter-row">
@@ -302,6 +324,18 @@
         <div class="grid grid-2">
           <div class="card"><h3>総合ポイントランキング</h3><div id="chart_rank" class="chart-box"></div></div>
           <div class="card"><h3>連続活動週数</h3><div id="chart_streak" class="chart-box"></div></div>
+        </div>
+        <div class="grid grid-2" style="margin-top:16px">
+          <div class="card">
+            <span class="section-kicker">Badges</span>
+            <h2>獲得バッジ</h2>
+            <div id="badgesPanel"></div>
+          </div>
+          <div class="card">
+            <span class="section-kicker">Levels</span>
+            <h2>レベル進捗</h2>
+            <div id="levelsPanel"></div>
+          </div>
         </div>
         <div class="card" style="margin-top:16px"><h3>ランキング詳細</h3><div id="rankTable"></div></div>
       </div>
@@ -442,7 +476,7 @@
 </div>
 
 <script src="https://www.gstatic.com/charts/loader.js"></script>
-<script src="config.js?v=20260426-3"></script>
-<script src="app.js?v=20260426-3"></script>
+<script src="config.js?v=20260427-2"></script>
+<script src="app.js?v=20260427-2"></script>
 </body>
 </html>

@@ -15,6 +15,7 @@ const TEAM_COLOR  = { A: '#6AB7F4', B: '#527EEC', C: '#A496FB' };
 
 let D = null; // ポータルデータ（fetchData後にセット）
 let PUBLIC_META = null;
+let CAPS = null;
 
 // ─── 初期化 ─────────────────────────────────────────────────────
 
@@ -218,7 +219,9 @@ function fetchData(token) {
 
 function renderApp() {
   const role = D.role;
-  applyLandingMeta(D.cohort);
+  const cohort = getCohort();
+  applyLandingMeta(cohort);
+  CAPS = resolveCapabilities(role, D.capabilities);
 
   // ロールバッジ
   const badgeEl = document.getElementById('role-badge');
@@ -226,26 +229,25 @@ function renderApp() {
 
   // ナビゲーション構築
   const pages = [
-    { id: 'overview',     label: '施策概要',           roles: ['admin','member','viewer'] },
-    { id: 'summary',      label: '全体サマリー',         roles: ['admin','member','viewer'] },
-    { id: 'member',       label: '個人アクティビティ',   roles: ['admin','member'] },
-    { id: 'eval',         label: '評価スコア',           roles: ['admin','member'] },
-    { id: 'gamification', label: 'ゲーミフィケーション', roles: ['admin','member'] },
-    { id: 'selfevals',    label: '自己評価',             roles: ['admin','member'] },
-    { id: 'claude',       label: 'AI活用',               roles: ['admin','member'] },
-  ].filter(p => p.roles.includes(role));
+    { id: 'overview',     label: '施策概要',             roles: ['admin', 'member', 'viewer'], enabled: CAPS.canViewOverview },
+    { id: 'summary',      label: '全体サマリー',         roles: ['admin', 'member', 'viewer'], enabled: CAPS.canViewSummary },
+    { id: 'artifacts',    label: '成果物',               roles: ['admin', 'member', 'viewer'], enabled: CAPS.canViewArtifacts },
+    { id: 'member',       label: '個人アクティビティ',   roles: ['admin', 'member'],           enabled: CAPS.canViewMemberActivity },
+    { id: 'eval',         label: '評価スコア',           roles: ['admin', 'member'],           enabled: CAPS.canViewEvaluation },
+    { id: 'gamification', label: 'ゲーミフィケーション', roles: ['admin', 'member'],           enabled: CAPS.canViewGamification },
+    { id: 'selfevals',    label: '自己評価',             roles: ['admin', 'member'],           enabled: CAPS.canViewSelfEvaluations },
+    { id: 'claude',       label: 'AI活用',               roles: ['admin', 'member'],           enabled: CAPS.canViewClaudeUsage },
+  ].filter(p => p.roles.includes(role) && p.enabled !== false);
 
   const nav = document.getElementById('main-nav');
-  nav.innerHTML = pages.map((p, i) =>
-    `<button ${i===0 ? 'class="active"' : ''} onclick="showPage('${p.id}',this)">${p.label}</button>`
+  nav.innerHTML = pages.map((p) =>
+    `<button data-page="${p.id}" onclick="showPage('${p.id}',this)">${p.label}</button>`
   ).join('');
 
-  renderAppHero(D.cohort, pages, role);
+  renderAppHero(cohort, pages, role);
 
   // viewer notice
-  if (role === 'viewer') {
-    document.getElementById('viewer-notice').style.display = 'block';
-  }
+  document.getElementById('viewer-notice').style.display = role === 'viewer' ? 'block' : 'none';
 
   // 評価フォームリンク
   if (D.evalFormUrl) {
@@ -257,12 +259,23 @@ function renderApp() {
   }
 
   // 評価テーブルタイトル（admin は承認ボタンあり）
-  if (role === 'admin') {
+  if (role === 'admin' && CAPS.canApproveEvaluation) {
     document.getElementById('evalTableTitle').textContent = 'Before→After 成長スコア';
     document.getElementById('adminEvalSection').style.display = 'block';
+  } else {
+    document.getElementById('adminEvalSection').style.display = 'none';
   }
 
-  renderOverviewPage();
+  if (!pages.length) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page_overview').classList.add('active');
+    document.getElementById('overview-content').innerHTML =
+      '<div class="card"><p class="subtle-text">現在の権限では閲覧可能なページがありません。</p></div>';
+    return;
+  }
+
+  const initialPage = pages[0].id;
+  showPage(initialPage, nav.querySelector(`button[data-page="${initialPage}"]`));
 }
 
 function renderAppHero(cohort, pages, role) {
@@ -374,6 +387,124 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+function toBoolean(value) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase();
+    if (v === 'true' || v === '1' || v === 'yes') return true;
+    if (v === 'false' || v === '0' || v === 'no') return false;
+  }
+  if (typeof value === 'number') {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  return null;
+}
+
+function asArray(value) {
+  if (Array.isArray(value)) return value;
+  if (!value) return [];
+  return [value];
+}
+
+function pickFirstString(obj, keys, fallback = '') {
+  if (!obj || typeof obj !== 'object') return fallback;
+  for (const key of keys) {
+    const value = obj[key];
+    if (value === 0) return '0';
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return fallback;
+}
+
+function pickFirstValue(obj, keys, fallback = '') {
+  if (!obj || typeof obj !== 'object') return fallback;
+  for (const key of keys) {
+    if (obj[key] !== undefined && obj[key] !== null && obj[key] !== '') return obj[key];
+  }
+  return fallback;
+}
+
+function capabilityValue(raw, keys, fallback) {
+  const sources = [raw, raw && raw.pages, raw && raw.page, raw && raw.features, raw && raw.flags];
+  for (const source of sources) {
+    if (!source || typeof source !== 'object' || Array.isArray(source)) continue;
+    for (const key of keys) {
+      const parsed = toBoolean(source[key]);
+      if (parsed !== null) return parsed;
+    }
+  }
+
+  const granted = [];
+  if (Array.isArray(raw)) granted.push(...raw.map(v => String(v)));
+  if (raw && typeof raw === 'object' && Array.isArray(raw.enabled)) granted.push(...raw.enabled.map(v => String(v)));
+  for (const key of keys) {
+    if (granted.includes(key)) return true;
+  }
+
+  return fallback;
+}
+
+function resolveCapabilities(role, rawCapabilities) {
+  const defaultByRole = {
+    canViewOverview: true,
+    canViewSummary: true,
+    canViewAiInsights: true,
+    canViewQuickLinks: true,
+    canViewArtifacts: true,
+    canViewMemberActivity: role !== 'viewer',
+    canViewEvaluation: role !== 'viewer',
+    canApproveEvaluation: role === 'admin',
+    canViewGamification: role !== 'viewer',
+    canViewAchievements: role !== 'viewer',
+    canViewSelfEvaluations: role !== 'viewer',
+    canViewClaudeUsage: role !== 'viewer',
+  };
+
+  const raw = rawCapabilities && typeof rawCapabilities === 'object' ? rawCapabilities : {};
+  const explicitArtifactScope = capabilityValue(raw, ['canViewArtifacts', 'page_artifacts', 'artifactsEnabled'], null);
+  const artifactDerivedScope = ['canViewPublishedArtifacts', 'canViewEmployeeArtifacts', 'canViewParticipantArtifacts', 'canViewAdminArtifacts']
+    .some((key) => toBoolean(raw[key]) === true);
+  const artifactScope = explicitArtifactScope === null
+    ? (artifactDerivedScope || defaultByRole.canViewArtifacts)
+    : explicitArtifactScope;
+
+  return {
+    canViewOverview: capabilityValue(raw, ['canViewOverview', 'page_overview'], defaultByRole.canViewOverview),
+    canViewSummary: capabilityValue(raw, ['canViewSummary', 'page_summary'], defaultByRole.canViewSummary),
+    canViewAiInsights: capabilityValue(raw, ['canViewAiInsights', 'canViewAIInsights', 'canViewInsights', 'aiInsightsEnabled', 'summaryAiInsightsEnabled'], defaultByRole.canViewAiInsights),
+    canViewQuickLinks: capabilityValue(raw, ['canViewQuickLinks', 'canViewOverviewQuickLinks', 'quickLinksEnabled'], defaultByRole.canViewQuickLinks),
+    canViewArtifacts: artifactScope,
+    canViewMemberActivity: capabilityValue(raw, ['canViewMemberActivity', 'page_member'], defaultByRole.canViewMemberActivity),
+    canViewEvaluation: capabilityValue(raw, ['canViewEvaluation', 'page_eval'], defaultByRole.canViewEvaluation),
+    canApproveEvaluation: capabilityValue(raw, ['canApproveEvaluation'], defaultByRole.canApproveEvaluation),
+    canViewGamification: capabilityValue(raw, ['canViewGamification', 'page_gamification'], defaultByRole.canViewGamification),
+    canViewAchievements: capabilityValue(raw, ['canViewAchievements', 'canViewHallOfFame', 'badgesEnabled'], defaultByRole.canViewAchievements),
+    canViewSelfEvaluations: capabilityValue(raw, ['canViewSelfEvaluations', 'canViewSelfEvals', 'page_selfevals'], defaultByRole.canViewSelfEvaluations),
+    canViewClaudeUsage: capabilityValue(raw, ['canViewClaudeUsage', 'page_claude'], defaultByRole.canViewClaudeUsage),
+  };
+}
+
+function toSafeUrl(value) {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return '';
+}
+
+function getCohort() {
+  const raw = D && D.cohort && typeof D.cohort === 'object' ? D.cohort : {};
+  return {
+    id: raw.id || '',
+    name: raw.name || 'Cohort',
+    period: raw.period || '-',
+    weeklySession: raw.weeklySession || '-',
+    phases: Array.isArray(raw.phases) ? raw.phases : [],
+    teams: Array.isArray(raw.teams) ? raw.teams : [],
+  };
+}
+
 function extractMonthNumbers(value) {
   return String(value || '').match(/\d{1,2}(?=月)/g)?.map(Number) || [];
 }
@@ -460,16 +591,30 @@ function buildPhaseTimeline(cohort, now = new Date()) {
 }
 
 function showPage(name, btn) {
+  const pageEl = document.getElementById('page_' + name);
+  if (!pageEl) return;
+
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-  document.getElementById('page_' + name).classList.add('active');
-  btn.classList.add('active');
+  document.querySelectorAll('#main-nav button').forEach(b => b.classList.remove('active'));
+  pageEl.classList.add('active');
+
+  const activeBtn = btn || document.querySelector(`#main-nav button[data-page="${name}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
+
+  if (name === 'overview')     renderOverviewPage();
   if (name === 'summary')      requestAnimationFrame(() => renderSummaryPage());
+  if (name === 'artifacts')    renderArtifactsPage();
   if (name === 'member')       renderMemberPage();
   if (name === 'eval')         renderEvalPage();
   if (name === 'gamification') renderGamificationPage();
   if (name === 'selfevals')    renderSelfEvalPage();
   if (name === 'claude')       requestAnimationFrame(() => renderClaudePage());
+}
+
+function openPage(name) {
+  const btn = document.querySelector(`#main-nav button[data-page="${name}"]`);
+  if (!btn) return;
+  showPage(name, btn);
 }
 
 function handleWindowResize() {
@@ -480,6 +625,10 @@ function handleWindowResize() {
 
     if (activePage.id === 'page_summary') {
       renderSummaryPage();
+    } else if (activePage.id === 'page_overview') {
+      renderOverviewPage();
+    } else if (activePage.id === 'page_artifacts') {
+      renderArtifactsPage();
     } else if (activePage.id === 'page_member') {
       renderMemberPage();
     } else if (activePage.id === 'page_eval') {
@@ -494,10 +643,89 @@ function handleWindowResize() {
 
 // ─── 施策概要 ─────────────────────────────────────────────────
 
+function normalizeQuickLinkKey(raw) {
+  const key = String(raw || '').toLowerCase();
+  if (key.includes('git') || key.includes('repo')) return 'github';
+  if (key.includes('backlog')) return 'backlog';
+  if (key.includes('chat')) return 'chat';
+  if (key.includes('artifact') || key.includes('deliverable') || key.includes('成果')) return 'artifacts';
+  return '';
+}
+
+function applyQuickLinkSource(target, source) {
+  if (!source) return;
+
+  if (Array.isArray(source)) {
+    source.forEach(item => {
+      if (!item || typeof item !== 'object') return;
+      const key = normalizeQuickLinkKey(
+        pickFirstString(item, ['key', 'id', 'name', 'label', 'title', 'type', 'category'], '')
+      );
+      if (!key) return;
+      const url = toSafeUrl(pickFirstString(item, ['url', 'href', 'link', 'value'], ''));
+      if (url) target[key] = url;
+    });
+    return;
+  }
+
+  if (typeof source !== 'object') return;
+  Object.entries(source).forEach(([rawKey, rawValue]) => {
+    const key = normalizeQuickLinkKey(rawKey);
+    if (!key) return;
+    if (typeof rawValue === 'string') {
+      const url = toSafeUrl(rawValue);
+      if (url) target[key] = url;
+      return;
+    }
+    if (rawValue && typeof rawValue === 'object') {
+      const url = toSafeUrl(pickFirstString(rawValue, ['url', 'href', 'link', 'value'], ''));
+      if (url) target[key] = url;
+    }
+  });
+}
+
+function buildQuickLinks() {
+  const cohort = getCohort();
+  const teamLinks = D.links && D.links.teams && typeof D.links.teams === 'object'
+    ? Object.values(D.links.teams)
+    : [];
+  const cohortTeamLinks = cohort.teams
+    .map(team => (team && typeof team.links === 'object') ? team.links : null)
+    .filter(Boolean);
+  const firstTeam = teamLinks[0] || {};
+  const firstCohortTeam = cohortTeamLinks[0] || {};
+  const links = {
+    github: toSafeUrl(firstTeam.github) || toSafeUrl(firstCohortTeam.github) || 'https://github.com/april-knights-dev',
+    backlog: toSafeUrl(firstTeam.backlog) || toSafeUrl(firstCohortTeam.backlog) || toSafeUrl(D.links && D.links.backlogProject) || 'https://ak-galahad.backlog.com',
+    chat: toSafeUrl(firstTeam.gchat) || toSafeUrl(firstCohortTeam.gchat) || 'https://chat.google.com',
+    artifacts: toSafeUrl(firstTeam.artifacts) || toSafeUrl(firstCohortTeam.artifacts) || '',
+  };
+
+  applyQuickLinkSource(links, D.links);
+  applyQuickLinkSource(links, cohort);
+  applyQuickLinkSource(links, cohort.links);
+  applyQuickLinkSource(links, cohort.quickLinks);
+
+  return [
+    { id: 'github', label: 'GitHub', desc: 'リポジトリとPRを確認', url: links.github },
+    { id: 'backlog', label: 'Backlog', desc: '課題管理を確認', url: links.backlog },
+    { id: 'chat', label: 'Google Chat', desc: '施策スペースを確認', url: links.chat },
+    {
+      id: 'artifacts',
+      label: '成果物',
+      desc: '成果物ページへ移動',
+      url: links.artifacts,
+      internalPage: 'artifacts',
+    },
+  ];
+}
+
 function renderOverviewPage() {
-  const cohort = D.cohort;
-  const memberCount = cohort.teams.reduce((sum, team) => sum + team.members.length, 0);
+  const cohort = getCohort();
+  const teams = Array.isArray(cohort.teams) ? cohort.teams : [];
+  const memberCount = teams.reduce((sum, team) => sum + ((team && Array.isArray(team.members)) ? team.members.length : 0), 0);
   const timelineMeta = buildPhaseTimeline(cohort);
+  const quickLinks = buildQuickLinks();
 
   const phasesHtml = timelineMeta.items.map(item => `
     <div class="timeline-item timeline-item-${item.status}">
@@ -514,15 +742,45 @@ function renderOverviewPage() {
       </div>
     </div>`).join('');
 
-  const teamsHtml = cohort.teams.map(t => `
-    <div class="team-card team-${t.id.toLowerCase()}">
+  const teamsHtml = teams.map(t => {
+    const teamId = String((t && t.id) || '').toLowerCase();
+    const members = (t && Array.isArray(t.members)) ? t.members : [];
+    const po = (t && Array.isArray(t.po)) ? t.po : [];
+    return `
+    <div class="team-card team-${escapeHtml(teamId)}">
       <div class="team-card-head">
-        <span class="badge badge-${t.id.toLowerCase()}">Team ${t.id}</span>
-        <h4>${t.theme}</h4>
+        <span class="badge badge-${escapeHtml(teamId)}">Team ${escapeHtml((t && t.id) || '-')}</span>
+        <h4>${escapeHtml((t && t.theme) || 'テーマ未設定')}</h4>
       </div>
-      <div class="members">メンバー: ${t.members.join('・')} / リーダー: ${t.leader}</div>
-      <div class="team-po">PO: ${t.po.join('・')}</div>
-    </div>`).join('');
+      <div class="members">メンバー: ${escapeHtml(members.join('・') || '未設定')} / リーダー: ${escapeHtml((t && t.leader) || '未設定')}</div>
+      <div class="team-po">PO: ${escapeHtml(po.join('・') || '未設定')}</div>
+    </div>`;
+  }).join('');
+
+  const quickLinksHtml = CAPS && CAPS.canViewQuickLinks
+    ? quickLinks.map((link) => {
+      const disabled = link.id === 'artifacts' && CAPS && !CAPS.canViewArtifacts;
+      if (disabled) {
+        return `
+          <div class="quick-link quick-link-disabled">
+            <span class="quick-link-label">${escapeHtml(link.label)}</span>
+            <span class="quick-link-desc">閲覧権限がありません</span>
+          </div>`;
+      }
+      if (link.url) {
+        return `
+          <a class="quick-link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">
+            <span class="quick-link-label">${escapeHtml(link.label)}</span>
+            <span class="quick-link-desc">${escapeHtml(link.desc)}</span>
+          </a>`;
+      }
+      return `
+        <button class="quick-link quick-link-action" type="button" onclick="openPage('${link.internalPage || 'artifacts'}')">
+          <span class="quick-link-label">${escapeHtml(link.label)}</span>
+          <span class="quick-link-desc">${escapeHtml(link.desc)}</span>
+        </button>`;
+    }).join('')
+    : '<div class="quick-links-empty">クイックリンクは現在の表示設定で無効化されています。</div>';
 
   document.getElementById('overview-content').innerHTML = `
   <div class="grid grid-2">
@@ -538,7 +796,7 @@ function renderOverviewPage() {
         <div class="overview-fact"><span>Cohort</span><strong>${cohort.name} / ${cohort.id}</strong></div>
         <div class="overview-fact"><span>Period</span><strong>${cohort.period}</strong></div>
         <div class="overview-fact"><span>Weekly Session</span><strong>${cohort.weeklySession}</strong></div>
-        <div class="overview-fact"><span>Team Setup</span><strong>${cohort.teams.length}チーム / ${memberCount}名</strong></div>
+        <div class="overview-fact"><span>Team Setup</span><strong>${teams.length}チーム / ${memberCount}名</strong></div>
       </div>
     </div>
     <div class="card">
@@ -558,10 +816,15 @@ function renderOverviewPage() {
       <div class="timeline">${phasesHtml}</div>
     </div>
   </div>
+  <div class="card quick-links-card" style="margin-top:16px">
+    <span class="section-kicker">Quick Links</span>
+    <h2>主要リンク</h2>
+    <div class="quick-link-grid">${quickLinksHtml}</div>
+  </div>
   <div class="card" style="margin-top:16px">
     <span class="section-kicker">Teams</span>
     <h2>チーム構成（${cohort.name}）</h2>
-    <div class="teams-grid">${teamsHtml}</div>
+    <div class="teams-grid">${teamsHtml || '<p class="subtle-text">チーム情報は準備中です。</p>'}</div>
   </div>
   <div class="card" style="margin-top:16px">
     <span class="section-kicker">Evaluation Policy</span>
@@ -586,13 +849,15 @@ function renderOverviewPage() {
 
 function renderSummaryPage() {
   const role  = D.role;
-  const src   = role === 'viewer' ? D.gh_team : D.github;
+  const src   = role === 'viewer' ? asArray(D.gh_team) : asArray(D.github);
+  const gchat = asArray(D.gchat);
+  const backlog = asArray(D.backlog);
   const week  = latestActiveWeek(src, ['commits', 'prs_opened', 'prs_merged', 'reviews_given']);
   const wGH   = src.filter(r => r.week_start === week);
-  const gcWeek = latestActiveWeek(D.gchat, ['messages_sent']);
-  const blWeek = latestActiveWeek(D.backlog, ['tasks_completed']);
-  const wGC   = D.gchat.filter(r => r.week_start === gcWeek);
-  const wBL   = D.backlog.filter(r => r.week_start === blWeek);
+  const gcWeek = latestActiveWeek(gchat, ['messages_sent']);
+  const blWeek = latestActiveWeek(backlog, ['tasks_completed']);
+  const wGC   = gchat.filter(r => r.week_start === gcWeek);
+  const wBL   = backlog.filter(r => r.week_start === blWeek);
   const latestLabel = week ? formatDisplayDate(week) : '未取得';
 
   document.getElementById('scoreCards').innerHTML =
@@ -604,14 +869,15 @@ function renderSummaryPage() {
   setText('summary-updated', latestLabel);
   setText('summary-caption', '各チームの週次推移を折れ線で比較し、最新週の活動量はカードと横棒で確認できるようにしています。');
   setText('meta_chart_week', summaryMeta(src));
-  setText('meta_chart_gchat_week', summaryMeta(D.gchat));
-  setText('meta_chart_backlog_week', summaryMeta(D.backlog));
+  setText('meta_chart_gchat_week', summaryMeta(gchat));
+  setText('meta_chart_backlog_week', summaryMeta(backlog));
   setText('meta_chart_team_activity', latestLabel === '未取得' ? 'データ待ち' : `最新週 ${latestLabel}`);
 
+  renderSummaryInsights();
   renderWeeklyTrendChart(src,      'commits',         'chart_week');
-  renderWeeklyTrendChart(D.gchat,  'messages_sent',   'chart_gchat_week');
-  renderWeeklyTrendChart(D.backlog,'tasks_completed',  'chart_backlog_week');
-  renderTeamActivityChart();
+  renderWeeklyTrendChart(gchat,    'messages_sent',   'chart_gchat_week');
+  renderWeeklyTrendChart(backlog,  'tasks_completed', 'chart_backlog_week');
+  renderTeamActivityChart({ github: src, gchat, backlog });
 }
 
 function scoreCard(val, lbl, meta = '') {
@@ -661,6 +927,128 @@ function formatCompactDate(value) {
 function summaryMeta(data) {
   const count = [...new Set((data || []).map(row => row.week_start).filter(Boolean))].length;
   return count ? `${count}週分` : 'データ待ち';
+}
+
+function collectAiInsights() {
+  const src = D.ai_insights || D.aiInsights || D.insights || [];
+  if (Array.isArray(src)) return src;
+  if (src && typeof src === 'object') {
+    if (Array.isArray(src.rows)) return src.rows;
+    if (Array.isArray(src.list)) return src.list;
+    if (Array.isArray(src.data)) return src.data;
+    if (Array.isArray(src.insights)) return src.insights;
+    if (Array.isArray(src.items)) return src.items;
+    if (Array.isArray(src.teams)) return src.teams;
+    if (src.by_team && typeof src.by_team === 'object') return Object.values(src.by_team);
+    return [src];
+  }
+  return [];
+}
+
+function renderSummaryInsights() {
+  const panel = document.getElementById('summary-ai-insights');
+  const container = document.getElementById('ai-insights-content');
+  if (!panel || !container) return;
+
+  if (CAPS && !CAPS.canViewAiInsights) {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+
+  const insights = collectAiInsights();
+  const rows = insights.map((item, index) => ({
+    team: pickFirstString(item, ['team', 'target', 'scope', 'group', 'scope_id'], `Insight ${index + 1}`),
+    title: pickFirstString(item, ['title', 'headline', 'theme', 'kind'], '活動インサイト'),
+    summary: pickFirstString(item, ['summary', 'insight', 'analysis', 'message', 'text', 'content', 'body', 'highlight', 'mvp'], ''),
+    advice: pickFirstString(item, ['advice', 'recommendation', 'next_action', 'action', 'next_focus', 'next_week_focus'], ''),
+    cheer: pickFirstString(item, ['cheer', 'encouragement', 'cheer_message'], ''),
+    week: pickFirstString(item, ['week_start', 'week'], ''),
+    updatedAt: pickFirstString(item, ['updated_at', 'created_at', 'generated_at'], ''),
+  })).filter(row => row.summary || row.advice || row.cheer);
+
+  if (!rows.length) {
+    setText('ai-insights-meta', 'データ待ち');
+    container.innerHTML = '<div class="ai-insight-empty">AIインサイトはまだ生成されていません。</div>';
+    return;
+  }
+
+  const latest = rows.find(row => row.week || row.updatedAt) || rows[0];
+  setText('ai-insights-meta', latest.week ? `対象週 ${formatDisplayDate(latest.week)}` : `更新 ${formatDisplayDate(latest.updatedAt)}`);
+  container.innerHTML = rows.slice(0, 3).map((row) => `
+    <article class="ai-insight-item">
+      <div class="ai-insight-head">
+        <span class="ai-insight-team">${escapeHtml(row.team)}</span>
+        <strong>${escapeHtml(row.title)}</strong>
+      </div>
+      <p>${escapeHtml(row.summary || '要約データは準備中です。')}</p>
+      ${row.advice ? `<p class="ai-insight-sub">次の一手: ${escapeHtml(row.advice)}</p>` : ''}
+      ${row.cheer ? `<p class="ai-insight-sub">応援: ${escapeHtml(row.cheer)}</p>` : ''}
+    </article>
+  `).join('');
+}
+
+function collectArtifacts() {
+  const src = D.artifacts || D.deliverables || [];
+  const list = Array.isArray(src)
+    ? src
+    : Array.isArray(src.items) ? src.items
+      : Array.isArray(src.rows) ? src.rows
+        : Array.isArray(src.list) ? src.list
+          : Array.isArray(src.data) ? src.data
+            : [];
+  return list.map((item) => ({
+    title: pickFirstString(item, ['title', 'artifact_title', 'artifact_name', 'name', 'deliverable_title'], '成果物'),
+    summary: pickFirstString(item, ['summary', 'description', 'abstract', 'desc', 'note'], ''),
+    team: pickFirstString(item, ['team', 'team_id', 'scope_id'], ''),
+    type: pickFirstString(item, ['type', 'artifact_type', 'category', 'kind', 'source_type'], ''),
+    status: pickFirstString(item, ['status', 'publish_status'], 'published'),
+    visibility: pickFirstString(item, ['visibility', 'scope', 'access_scope'], ''),
+    url: toSafeUrl(pickFirstString(item, ['url', 'link', 'href', 'demo_url', 'repo_url', 'artifact_url', 'source_url', 'target_url'], '')),
+    updatedAt: pickFirstValue(item, ['updated_at', 'published_at', 'created_at', 'week_start'], ''),
+  })).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+}
+
+function renderArtifactsPage() {
+  const target = document.getElementById('artifacts-content');
+  if (!target) return;
+
+  if (CAPS && !CAPS.canViewArtifacts) {
+    target.innerHTML = '<div class="card"><p class="subtle-text">成果物ページの閲覧権限がありません。</p></div>';
+    return;
+  }
+
+  const artifacts = collectArtifacts();
+  if (!artifacts.length) {
+    target.innerHTML = `
+      <div class="card">
+        <p class="subtle-text">成果物データはまだ登録されていません。公開URLが設定されるとここに表示されます。</p>
+      </div>`;
+    return;
+  }
+
+  const cards = artifacts.map((artifact) => `
+    <article class="artifact-card">
+      <div class="artifact-head">
+        <h3>${escapeHtml(artifact.title)}</h3>
+        <div class="artifact-tags">
+          ${artifact.team ? `<span class="artifact-tag">Team ${escapeHtml(artifact.team)}</span>` : ''}
+          ${artifact.type ? `<span class="artifact-tag">${escapeHtml(artifact.type)}</span>` : ''}
+          ${artifact.status ? `<span class="artifact-tag artifact-tag-status">${escapeHtml(artifact.status)}</span>` : ''}
+          ${artifact.visibility ? `<span class="artifact-tag">${escapeHtml(artifact.visibility)}</span>` : ''}
+        </div>
+      </div>
+      ${artifact.summary ? `<p class="artifact-summary">${escapeHtml(artifact.summary)}</p>` : ''}
+      <div class="artifact-foot">
+        ${artifact.updatedAt ? `<span class="artifact-meta">更新: ${escapeHtml(formatDisplayDate(artifact.updatedAt))}</span>` : '<span class="artifact-meta">更新日未設定</span>'}
+        ${artifact.url
+          ? `<a class="artifact-link" href="${escapeHtml(artifact.url)}" target="_blank" rel="noopener noreferrer">成果物を開く</a>`
+          : '<span class="artifact-link artifact-link-disabled">URL未設定</span>'}
+      </div>
+    </article>
+  `).join('');
+
+  target.innerHTML = `<div class="artifacts-grid">${cards}</div>`;
 }
 
 function renderEmptyChart(elId, message) {
@@ -746,19 +1134,24 @@ function renderWeeklyTrendChart(data, metric, elId) {
   });
 }
 
-function renderTeamActivityChart() {
-  const week   = latestActiveWeek(D.github, ['commits', 'prs_opened']);
-  const blWeek = latestActiveWeek(D.backlog, ['tasks_completed']);
-  const gcWeek = latestActiveWeek(D.gchat, ['messages_sent']);
+function renderTeamActivityChart(sources = {}) {
+  const github = asArray(sources.github || D.github);
+  const backlog = asArray(sources.backlog || D.backlog);
+  const gchat = asArray(sources.gchat || D.gchat);
+
+  const week   = latestActiveWeek(github, ['commits', 'prs_opened']);
+  const blWeek = latestActiveWeek(backlog, ['tasks_completed']);
+  const gcWeek = latestActiveWeek(gchat, ['messages_sent']);
   const rows = [['チーム','コミット','PR','完了タスク','Chatメッセージ']];
   ['A','B','C'].forEach(t => {
-    const g  = D.github.filter(r=>r.week_start===week&&r.team===t)
+    const g  = github.filter(r=>r.week_start===week&&r.team===t)
                        .reduce((a,r)=>({c:a.c+(r.commits||0),p:a.p+(r.prs_opened||0)}),{c:0,p:0});
-    const bl = D.backlog.filter(r=>r.week_start===blWeek&&r.team===t).reduce((s,r)=>s+(r.tasks_completed||0),0);
-    const gc = D.gchat.filter(r=>r.week_start===gcWeek&&r.team===t).reduce((s,r)=>s+(r.messages_sent||0),0);
+    const bl = backlog.filter(r=>r.week_start===blWeek&&r.team===t).reduce((s,r)=>s+(r.tasks_completed||0),0);
+    const gc = gchat.filter(r=>r.week_start===gcWeek&&r.team===t).reduce((s,r)=>s+(r.messages_sent||0),0);
     rows.push(['Team '+t, g.c, g.p, bl, gc]);
   });
-  if (rows.length < 2) {
+  const hasActivity = rows.slice(1).some(row => row.slice(1).some(value => (value || 0) > 0));
+  if (!hasActivity) {
     renderEmptyChart('chart_team_activity', '最新週の活動量データがまだありません。');
     return;
   }
@@ -793,18 +1186,21 @@ function renderTeamActivityChart() {
 // ─── 個人アクティビティ ────────────────────────────────────────
 
 function renderMemberPage() {
+  const githubRows = asArray(D.github);
+  const gchatRows = asArray(D.gchat);
+  const backlogRows = asArray(D.backlog);
   const selMember = document.getElementById('filterMember').value;
   const selTeam   = document.getElementById('filterTeam').value;
 
   const sel     = document.getElementById('filterMember');
   const cur     = sel.value;
-  const members = [...new Set(D.github.map(r=>r.member))].sort();
+  const members = [...new Set(githubRows.map(r=>r.member))].sort();
   sel.innerHTML = '<option value="">全メンバー</option>' +
     members.map(m=>`<option value="${m}"${cur===m?' selected':''}>${m}</option>`).join('');
 
   // 全期間累積：メンバーごとに合算
   const ghCumulative = {};
-  D.github.forEach(r => {
+  githubRows.forEach(r => {
     if (!ghCumulative[r.member]) ghCumulative[r.member] = { member: r.member, team: r.team, commits: 0, prs_opened: 0, prs_merged: 0, reviews_given: 0 };
     ghCumulative[r.member].commits      += r.commits       || 0;
     ghCumulative[r.member].prs_opened   += r.prs_opened    || 0;
@@ -828,14 +1224,14 @@ function renderMemberPage() {
   }
 
   const filtMembers = selMember ? [selMember]
-    : (selTeam ? D.github.filter(r=>r.team===selTeam).map(r=>r.member).filter((v,i,a)=>a.indexOf(v)===i)
+    : (selTeam ? githubRows.filter(r=>r.team===selTeam).map(r=>r.member).filter((v,i,a)=>a.indexOf(v)===i)
                : members);
-  const weeks = [...new Set(D.github.map(r=>r.week_start))].sort();
+  const weeks = [...new Set(githubRows.map(r=>r.week_start))].sort();
   const trendRows = [['週', ...filtMembers]];
   weeks.forEach(w => {
     const row = [formatDisplayDate(w)];
     filtMembers.forEach(m => row.push(
-      D.github.filter(r=>r.week_start===w&&r.member===m).reduce((s,r)=>s+(r.commits||0),0)
+      githubRows.filter(r=>r.week_start===w&&r.member===m).reduce((s,r)=>s+(r.commits||0),0)
     ));
     trendRows.push(row);
   });
@@ -851,8 +1247,8 @@ function renderMemberPage() {
   let html = '<table><tr><th>メンバー</th><th>チーム</th><th>コミット</th><th>PR</th><th>レビュー</th><th>Chatメッセージ</th><th>完了タスク</th></tr>';
   filtMembers.forEach(m => {
     const g  = ghCumulative[m] || {};
-    const gc = D.gchat.filter(r=>r.member===m).reduce((s,r)=>s+(r.messages_sent||0),0);
-    const bl = D.backlog.filter(r=>r.member===m).reduce((s,r)=>s+(r.tasks_completed||0),0);
+    const gc = gchatRows.filter(r=>r.member===m).reduce((s,r)=>s+(r.messages_sent||0),0);
+    const bl = backlogRows.filter(r=>r.member===m).reduce((s,r)=>s+(r.tasks_completed||0),0);
     const team = g.team || '';
     html += `<tr><td>${m}</td><td><span class="badge badge-${team.toLowerCase()}">${team}</span></td>` +
       `<td>${g.commits||0}</td><td>${g.prs_opened||0}</td><td>${g.reviews_given||0}</td><td>${gc}</td><td>${bl}</td></tr>`;
@@ -994,20 +1390,149 @@ function normalizeWeek_(ws) {
   return d.toISOString().slice(0, 10);
 }
 
+function collectAchievements() {
+  const src = D.achievements || [];
+  if (Array.isArray(src)) {
+    const badges = src.filter(item => (
+      pickFirstString(item, ['type'], '').toLowerCase() === 'badge' ||
+      pickFirstString(item, ['badge', 'badge_name', 'badge_title', 'badge_label', 'badge_id'], '')
+    ));
+    const levels = src.filter(item => (
+      pickFirstString(item, ['type'], '').toLowerCase() === 'level' ||
+      pickFirstValue(item, ['level', 'level_value', 'current_level'], '') !== ''
+    ));
+    return { badges, levels };
+  }
+
+  if (src && typeof src === 'object') {
+    return {
+      badges: asArray(src.badges || src.badge || src.items).filter(Boolean),
+      levels: asArray(src.levels || src.level || src.ranks).filter(Boolean),
+    };
+  }
+  return { badges: [], levels: [] };
+}
+
+function renderAchievementPanels() {
+  const badgesEl = document.getElementById('badgesPanel');
+  const levelsEl = document.getElementById('levelsPanel');
+  if (!badgesEl || !levelsEl) return;
+
+  if (CAPS && !CAPS.canViewAchievements) {
+    badgesEl.innerHTML = '<p class="subtle-text">この表示は現在の権限では利用できません。</p>';
+    levelsEl.innerHTML = '<p class="subtle-text">この表示は現在の権限では利用できません。</p>';
+    return;
+  }
+
+  const { badges, levels } = collectAchievements();
+  const badgeRows = badges.map((item) => ({
+    name: pickFirstString(item, ['badge', 'badge_name', 'badge_title', 'badge_label', 'title'], 'バッジ'),
+    emoji: pickFirstString(item, ['emoji', 'badge_emoji'], ''),
+    member: pickFirstString(item, ['member', 'user', 'name', 'recipient'], ''),
+    team: pickFirstString(item, ['team', 'team_id'], ''),
+    detail: pickFirstString(item, ['description', 'desc', 'reason'], ''),
+    points: Number(pickFirstValue(item, ['points', 'point', 'points_awarded'], 0)) || 0,
+  }));
+
+  // Level records may not exist yet. Derive levels from earned badge points.
+  const levelsByMember = {};
+  (badges || []).forEach((item) => {
+    const member = pickFirstString(item, ['member', 'user', 'name', 'recipient'], '');
+    if (!member) return;
+    const team = pickFirstString(item, ['team', 'team_id'], '');
+    const points = Number(pickFirstValue(item, ['points', 'point', 'points_awarded'], 0)) || 0;
+    if (!levelsByMember[member]) levelsByMember[member] = { member, team, xp: 0 };
+    levelsByMember[member].xp += points;
+  });
+  const explicitLevels = levels.map((item) => ({
+    member: pickFirstString(item, ['member', 'user', 'name'], ''),
+    team: pickFirstString(item, ['team', 'team_id'], ''),
+    level: Number(pickFirstValue(item, ['level', 'level_value', 'current_level'], 0)) || 0,
+    label: pickFirstString(item, ['level_name', 'title', 'rank'], ''),
+    xp: Number(pickFirstValue(item, ['xp', 'points', 'score'], 0)) || 0,
+  })).filter(row => row.member);
+
+  const derivedLevels = Object.values(levelsByMember).map((row) => {
+    const lv = levelFromPoints_(row.xp);
+    return {
+      member: row.member,
+      team: row.team,
+      level: lv.level,
+      label: lv.label,
+      xp: row.xp,
+    };
+  });
+  const levelRows = (explicitLevels.length ? explicitLevels : derivedLevels)
+    .sort((a, b) => b.level - a.level || b.xp - a.xp);
+
+  if (!badgeRows.length) {
+    badgesEl.innerHTML = '<p class="subtle-text">バッジ実績はまだありません。</p>';
+  } else {
+    badgesEl.innerHTML = `<div class="achievement-list">` + badgeRows.slice(0, 12).map((row) => `
+      <div class="achievement-item">
+        <div class="achievement-main">
+          <strong>${row.emoji ? `${escapeHtml(row.emoji)} ` : ''}${escapeHtml(row.name)}</strong>
+          ${row.member ? `<span>${escapeHtml(row.member)}${row.team ? ` / Team ${escapeHtml(row.team)}` : ''}${row.points ? ` / ${row.points}pt` : ''}</span>` : ''}
+        </div>
+        ${row.detail ? `<p>${escapeHtml(row.detail)}</p>` : ''}
+      </div>
+    `).join('') + `</div>`;
+  }
+
+  if (!levelRows.length) {
+    levelsEl.innerHTML = '<p class="subtle-text">レベル実績はまだありません。</p>';
+  } else {
+    levelsEl.innerHTML = `<div class="levels-list">` + levelRows.slice(0, 10).map((row) => `
+      <div class="level-item">
+        <div>
+          <strong>${escapeHtml(row.member || 'member')}</strong>
+          <span>${escapeHtml(row.label || `Level ${row.level}`)}</span>
+        </div>
+        <div class="level-meta">
+          <span>Lv.${row.level}</span>
+          <span>${row.xp}pt</span>
+        </div>
+      </div>
+    `).join('') + `</div>`;
+  }
+}
+
+function levelFromPoints_(points) {
+  const p = Number(points) || 0;
+  if (p >= 300) return { level: 5, label: 'AIネイティブマスター' };
+  if (p >= 160) return { level: 4, label: 'テックリード候補' };
+  if (p >= 80) return { level: 3, label: 'シニアビルダー' };
+  if (p >= 30) return { level: 2, label: 'ジュニアビルダー' };
+  return { level: 1, label: '見習いエンジニア' };
+}
+
 function renderGamificationPage() {
-  const members = [...new Set(D.github.map(r=>r.member))].sort();
+  const githubRows = asArray(D.github);
+  const gchatRows = asArray(D.gchat);
+  const backlogRows = asArray(D.backlog);
+  const members = [...new Set(githubRows.map(r=>r.member))].sort();
   const points  = members.map(m => {
-    const gh = D.github.filter(r=>r.member===m).reduce((a,r)=>({
+    const gh = githubRows.filter(r=>r.member===m).reduce((a,r)=>({
       commits: a.commits+(r.commits||0),
       prs:     a.prs+(r.prs_opened||0),
       reviews: a.reviews+(r.reviews_given||0),
     }), {commits:0,prs:0,reviews:0});
-    const gc = D.gchat.filter(r=>r.member===m).reduce((s,r)=>s+(r.messages_sent||0)+(r.reactions_given||0)+(r.reactions_received||0),0);
-    const bl = D.backlog.filter(r=>r.member===m).reduce((s,r)=>s+(r.tasks_completed||0),0);
+    const gc = gchatRows.filter(r=>r.member===m).reduce((s,r)=>s+(r.messages_sent||0)+(r.reactions_given||0)+(r.reactions_received||0),0);
+    const bl = backlogRows.filter(r=>r.member===m).reduce((s,r)=>s+(r.tasks_completed||0),0);
     const pt = gh.commits*3 + gh.prs*5 + gh.reviews*4 + gc*1 + bl*4;
-    const team = (D.github.find(r=>r.member===m)||{}).team || '';
+    const team = (githubRows.find(r=>r.member===m)||{}).team || '';
     return { name:m, team, pt, commits:gh.commits, prs:gh.prs, reviews:gh.reviews, chat:gc, tasks:bl };
   }).sort((a,b) => b.pt-a.pt);
+
+  if (!points.length) {
+    renderEmptyChart('chart_rank', 'ゲーミフィケーションの集計データがまだありません。');
+    renderEmptyChart('chart_streak', '連続活動データがまだありません。');
+    document.getElementById('rankTable').innerHTML =
+      '<table><tr><th>順位</th><th>メンバー</th><th>チーム</th><th>総合PT</th><th>コミット×3</th><th>PR×5</th><th>レビュー×4</th><th>Chat×1</th><th>タスク×4</th></tr>' +
+      '<tr><td colspan="9" style="color:#8991A9;text-align:center">集計対象データがありません</td></tr></table>';
+    renderAchievementPanels();
+    return;
+  }
 
   const rows = [['メンバー','ポイント',{role:'style'}]];
   points.forEach((p,i) => {
@@ -1022,14 +1547,14 @@ function renderGamificationPage() {
     });
 
   // week_start を正規化してから一意週リストを作成（型不整合対策）
-  const weeks = [...new Set(D.github.map(r=>normalizeWeek_(r.week_start)))].sort();
+  const weeks = [...new Set(githubRows.map(r=>normalizeWeek_(r.week_start)))].sort();
   const streakRows = [['メンバー','連続活動週数']];
   members.forEach(m => {
     let streak = 0, started = false;
     for (let i = weeks.length - 1; i >= 0; i--) {
       const w = weeks[i];
-      const active = D.github.some(r => normalizeWeek_(r.week_start) === w && r.member === m && (r.commits || 0) > 0)
-                  || D.gchat.some(r => normalizeWeek_(r.week_start) === w && r.member === m && (r.messages_sent || 0) > 0);
+      const active = githubRows.some(r => normalizeWeek_(r.week_start) === w && r.member === m && (r.commits || 0) > 0)
+                  || gchatRows.some(r => normalizeWeek_(r.week_start) === w && r.member === m && (r.messages_sent || 0) > 0);
       if (active) { started = true; streak++; }
       else if (started) break;
       // started=false かつ inactive → まだ活動開始前の週なのでスキップ
@@ -1064,6 +1589,7 @@ function renderGamificationPage() {
   });
   html += '</table>';
   document.getElementById('rankTable').innerHTML = html;
+  renderAchievementPanels();
 }
 
 // ─── AI活用 ───────────────────────────────────────────────────
