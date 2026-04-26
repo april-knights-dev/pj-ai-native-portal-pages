@@ -587,10 +587,10 @@ function renderOverviewPage() {
 function renderSummaryPage() {
   const role  = D.role;
   const src   = role === 'viewer' ? D.gh_team : D.github;
-  const week  = latestWeek(src);
+  const week  = latestActiveWeek(src, ['commits', 'prs_opened', 'prs_merged', 'reviews_given']);
   const wGH   = src.filter(r => r.week_start === week);
-  const gcWeek = latestWeek(D.gchat);
-  const blWeek = latestWeek(D.backlog);
+  const gcWeek = latestActiveWeek(D.gchat, ['messages_sent']);
+  const blWeek = latestActiveWeek(D.backlog, ['tasks_completed']);
   const wGC   = D.gchat.filter(r => r.week_start === gcWeek);
   const wBL   = D.backlog.filter(r => r.week_start === blWeek);
   const latestLabel = week ? formatDisplayDate(week) : '未取得';
@@ -637,6 +637,18 @@ function formatDisplayDate(value) {
 function latestWeek(arr) {
   if (!arr || !arr.length) return '';
   return arr.map(r => r.week_start).sort().pop();
+}
+
+function latestActiveWeek(arr, fields) {
+  if (!arr || !arr.length) return '';
+  const weeks = [...new Set(arr.map(r => r.week_start).filter(Boolean))].sort();
+  for (let i = weeks.length - 1; i >= 0; i--) {
+    const w = weeks[i];
+    const hasData = arr.filter(r => r.week_start === w)
+                       .some(r => fields.some(f => (r[f] || 0) > 0));
+    if (hasData) return w;
+  }
+  return weeks[weeks.length - 1] || '';
 }
 
 function formatCompactDate(value) {
@@ -735,9 +747,9 @@ function renderWeeklyTrendChart(data, metric, elId) {
 }
 
 function renderTeamActivityChart() {
-  const week   = latestWeek(D.github);
-  const blWeek = latestWeek(D.backlog);
-  const gcWeek = latestWeek(D.gchat);
+  const week   = latestActiveWeek(D.github, ['commits', 'prs_opened']);
+  const blWeek = latestActiveWeek(D.backlog, ['tasks_completed']);
+  const gcWeek = latestActiveWeek(D.gchat, ['messages_sent']);
   const rows = [['チーム','コミット','PR','完了タスク','Chatメッセージ']];
   ['A','B','C'].forEach(t => {
     const g  = D.github.filter(r=>r.week_start===week&&r.team===t)
@@ -783,7 +795,7 @@ function renderTeamActivityChart() {
 function renderMemberPage() {
   const selMember = document.getElementById('filterMember').value;
   const selTeam   = document.getElementById('filterTeam').value;
-  const week      = latestWeek(D.github);
+  const week      = latestActiveWeek(D.github, ['commits', 'prs_opened', 'prs_merged', 'reviews_given']);
 
   const sel     = document.getElementById('filterMember');
   const cur     = sel.value;
@@ -828,8 +840,8 @@ function renderMemberPage() {
       });
   }
 
-  const gcWeek = latestWeek(D.gchat);
-  const blWeek = latestWeek(D.backlog);
+  const gcWeek = latestActiveWeek(D.gchat, ['messages_sent']);
+  const blWeek = latestActiveWeek(D.backlog, ['tasks_completed']);
   let html = '<table><tr><th>メンバー</th><th>チーム</th><th>コミット</th><th>PR</th><th>レビュー</th><th>Chatメッセージ</th><th>完了タスク</th></tr>';
   filtMembers.forEach(m => {
     const g  = D.github.filter(r=>r.week_start===week&&r.member===m)[0] || {};
