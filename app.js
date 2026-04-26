@@ -22,8 +22,10 @@ google.charts.load('current', { packages: ['corechart', 'bar'], language: 'ja' }
 google.charts.setOnLoadCallback(init);
 
 let _pollTimer = null;
+let _resizeTimer = null;
 
 function init() {
+  window.addEventListener('resize', handleWindowResize);
   fetchPublicMeta();
 
   const urlToken = consumeTokenFromUrl();
@@ -260,7 +262,6 @@ function renderApp() {
   }
 
   renderOverviewPage();
-  renderSummaryPage();
 }
 
 function renderAppHero(cohort, pages, role) {
@@ -462,10 +463,29 @@ function showPage(name, btn) {
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('page_' + name).classList.add('active');
   btn.classList.add('active');
+  if (name === 'summary')      requestAnimationFrame(() => renderSummaryPage());
   if (name === 'member')       renderMemberPage();
   if (name === 'eval')         renderEvalPage();
   if (name === 'gamification') renderGamificationPage();
   if (name === 'selfevals')    renderSelfEvalPage();
+}
+
+function handleWindowResize() {
+  if (_resizeTimer) clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    const activePage = document.querySelector('.page.active');
+    if (!activePage) return;
+
+    if (activePage.id === 'page_summary') {
+      renderSummaryPage();
+    } else if (activePage.id === 'page_member') {
+      renderMemberPage();
+    } else if (activePage.id === 'page_eval') {
+      renderEvalPage();
+    } else if (activePage.id === 'page_gamification') {
+      renderGamificationPage();
+    }
+  }, 120);
 }
 
 // ─── 施策概要 ─────────────────────────────────────────────────
