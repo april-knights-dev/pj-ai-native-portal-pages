@@ -237,6 +237,8 @@ function renderApp() {
     `<button ${i===0 ? 'class="active"' : ''} onclick="showPage('${p.id}',this)">${p.label}</button>`
   ).join('');
 
+  renderAppHero(D.cohort, pages, role);
+
   // viewer notice
   if (role === 'viewer') {
     document.getElementById('viewer-notice').style.display = 'block';
@@ -259,6 +261,57 @@ function renderApp() {
 
   renderOverviewPage();
   renderSummaryPage();
+}
+
+function renderAppHero(cohort, pages, role) {
+  const teams = Array.isArray(cohort.teams) ? cohort.teams : [];
+  const phases = Array.isArray(cohort.phases) ? cohort.phases : [];
+  const memberCount = teams.reduce((sum, team) => sum + ((team.members && team.members.length) || 0), 0);
+
+  setText('hero-cohort-chip', cohort.name || '');
+  setText('hero-period', cohort.period || '-');
+  setText('hero-session', cohort.weeklySession || '-');
+  setText('hero-members', `${memberCount}名`);
+  setText('hero-teams', `${teams.length}チーム`);
+
+  const phaseStrip = document.getElementById('hero-phase-strip');
+  if (phaseStrip) {
+    phaseStrip.innerHTML = phases.map((phase, index) => `
+      <div class="hero-phase-card">
+        <span class="hero-phase-index">Phase ${index + 1}</span>
+        <strong>${escapeHtml(phase.name || '')}</strong>
+        <span>${escapeHtml(phase.period || '')}</span>
+      </div>
+    `).join('');
+  }
+
+  const surfaceGrid = document.getElementById('hero-surface-grid');
+  if (surfaceGrid) {
+    surfaceGrid.innerHTML = pages.map((page) => `
+      <div class="hero-surface-card">
+        <span class="hero-surface-label">${escapeHtml(page.label)}</span>
+      </div>
+    `).join('');
+  }
+
+  const dataPills = document.getElementById('hero-data-pills');
+  if (dataPills) {
+    dataPills.innerHTML = ['GitHub', 'Google Chat', 'Backlog', 'Evaluation']
+      .map((label) => `<span class="hero-pill">${label}</span>`)
+      .join('');
+  }
+
+  const roleMap = {
+    admin: ['管理者', '参加メンバー', '閲覧者'],
+    member: ['参加メンバー', '閲覧者'],
+    viewer: ['閲覧者'],
+  };
+  const rolePills = document.getElementById('hero-role-pills');
+  if (rolePills) {
+    rolePills.innerHTML = (roleMap[role] || [role]).map((label) => `
+      <span class="hero-pill hero-pill-muted">${label}</span>
+    `).join('');
+  }
 }
 
 function applyLandingMeta(cohort) {
@@ -588,7 +641,6 @@ function baseChartOptions() {
       alignment: 'start',
       textStyle: { color: '#5c667d', fontSize: 12 },
     },
-    chartArea: { left: 44, right: 8, top: 34, bottom: 42, width: '90%', height: '76%' },
     hAxis: {
       textStyle: { color: '#5c667d', fontSize: 11 },
       gridlines: { color: 'transparent' },
@@ -600,6 +652,28 @@ function baseChartOptions() {
       gridlines: { color: '#eef2f8' },
       baselineColor: '#d7deea',
       viewWindow: { min: 0 },
+    },
+  };
+}
+
+function sizedChartOptions(target, padding = {}) {
+  const left = padding.left ?? 44;
+  const right = padding.right ?? 8;
+  const top = padding.top ?? 34;
+  const bottom = padding.bottom ?? 42;
+  const width = Math.max(target.clientWidth || 0, 280);
+  const height = Math.max(target.clientHeight || 0, 280);
+
+  return {
+    width,
+    height,
+    chartArea: {
+      left,
+      right,
+      top,
+      bottom,
+      width: Math.max(width - left - right, 180),
+      height: Math.max(height - top - bottom, 160),
     },
   };
 }
@@ -628,6 +702,7 @@ function renderWeeklyTrendChart(data, metric, elId) {
   target.innerHTML = '';
   new google.visualization.LineChart(target).draw(dt, {
     ...baseChartOptions(),
+    ...sizedChartOptions(target, { left: 44, right: 10, top: 34, bottom: 34 }),
     colors: [TEAM_COLOR.A, TEAM_COLOR.B, TEAM_COLOR.C],
     lineWidth: 3,
     pointSize: 6,
@@ -657,6 +732,7 @@ function renderTeamActivityChart() {
   new google.visualization.BarChart(target)
     .draw(google.visualization.arrayToDataTable(rows), {
       ...baseChartOptions(),
+      ...sizedChartOptions(target, { left: 70, right: 12, top: 34, bottom: 24 }),
       isStacked: false,
       legend: {
         position: 'top',
@@ -664,7 +740,6 @@ function renderTeamActivityChart() {
         textStyle: { color: '#5c667d', fontSize: 12 },
       },
       colors: [TEAM_COLOR.B, TEAM_COLOR.A, TEAM_COLOR.C, '#8991A9'],
-      chartArea: { left: 70, right: 8, top: 34, bottom: 30, width: '88%', height: '78%' },
       hAxis: {
         ...baseChartOptions().hAxis,
         minValue: 0,

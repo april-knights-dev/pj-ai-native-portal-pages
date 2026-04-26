@@ -159,38 +159,41 @@
     </header>
 
     <section class="app-hero">
-      <div>
-        <span class="hero-kicker">AI Native Development Project</span>
-        <h2 class="hero-heading">AI-first な開発を、実践を通じて社内に定着させる育成施策。</h2>
-        <p class="hero-copy">
-          上流工程、実装、AI活用、チームコミュニケーションを横断して鍛えながら、
-          各チームの挑戦と成果を社内へひらくことを目的にしたプロジェクトです。
-        </p>
-        <div class="hero-meta">
-          <div class="hero-meta-item">
-            <span class="hero-stat-label">Program Scope</span>
-            <strong>テーマ / 進捗 / 評価 / 活動ログ</strong>
+      <div class="hero-panel hero-panel-program">
+        <div class="hero-panel-head">
+          <span class="hero-kicker">Program</span>
+          <span id="hero-cohort-chip" class="hero-inline-chip"></span>
+        </div>
+        <h2 class="hero-heading">AIネイティブ開発プロジェクト</h2>
+        <div class="hero-stat-grid">
+          <div class="hero-stat-card">
+            <span class="hero-stat-label">Period</span>
+            <strong id="hero-period">-</strong>
           </div>
-          <div class="hero-meta-item">
-            <span class="hero-stat-label">Execution</span>
-            <strong>実務連動 / チーム開発 / 定期評価</strong>
+          <div class="hero-stat-card">
+            <span class="hero-stat-label">Weekly Session</span>
+            <strong id="hero-session">-</strong>
           </div>
-          <div class="hero-meta-item">
-            <span class="hero-stat-label">Visibility</span>
-            <strong>社内共有 / 参加者詳細 / 権限制御</strong>
+          <div class="hero-stat-card">
+            <span class="hero-stat-label">Members</span>
+            <strong id="hero-members">-</strong>
+          </div>
+          <div class="hero-stat-card">
+            <span class="hero-stat-label">Teams</span>
+            <strong id="hero-teams">-</strong>
           </div>
         </div>
+        <div id="hero-phase-strip" class="hero-phase-strip"></div>
       </div>
-      <div class="hero-side">
-        <div class="hero-side-card">
-          <span class="section-kicker">Program Focus</span>
-          <h2>参加メンバーの成長と、チームごとの挑戦を継続的に共有。</h2>
-          <p>誰がどのテーマに取り組み、どこまで進み、どのように伸びているかを社内で追えるようにしています。</p>
+      <div class="hero-panel hero-panel-portal">
+        <div class="hero-panel-head">
+          <span class="hero-kicker">Portal</span>
+          <span class="hero-inline-chip">What You Can See</span>
         </div>
-        <div class="hero-side-card">
-          <span class="section-kicker">Program Intent</span>
-          <h2>施策の説明で終わらせず、実データで現在地を確認する。</h2>
-          <p>GitHub、Google Chat、Backlog、評価データをもとに、施策全体の進み方を実態ベースで把握できます。</p>
+        <div id="hero-surface-grid" class="hero-surface-grid"></div>
+        <div class="hero-portal-footer">
+          <div id="hero-data-pills" class="hero-pill-row"></div>
+          <div id="hero-role-pills" class="hero-pill-row hero-pill-row-muted"></div>
         </div>
       </div>
     </section>
