@@ -1206,8 +1206,72 @@ tr:hover td {
 
 .timeline {
   position: relative;
-  margin-top: 6px;
+  margin-top: 18px;
   padding-left: 26px;
+}
+
+.timeline-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 18px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 18px 20px;
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(82, 126, 236, 0.08), rgba(164, 150, 251, 0.12)),
+    var(--surface-soft);
+  border: 1px solid rgba(82, 126, 236, 0.14);
+}
+
+.timeline-summary-label {
+  display: inline-block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.timeline-summary strong {
+  display: block;
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+
+.timeline-summary p {
+  margin-top: 8px;
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.timeline-summary-progress {
+  display: grid;
+  gap: 10px;
+}
+
+.timeline-summary-track,
+.timeline-meter {
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(82, 126, 236, 0.12);
+}
+
+.timeline-summary-track span,
+.timeline-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary-soft), var(--accent));
+}
+
+.timeline-summary-progress strong {
+  font-size: 18px;
+  text-align: right;
 }
 
 .timeline::before {
@@ -1241,6 +1305,14 @@ tr:hover td {
   box-shadow: 0 0 0 5px rgba(106, 183, 244, 0.14);
 }
 
+.timeline-item-head,
+.timeline-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .timeline-item .period {
   display: inline-block;
   margin-bottom: 6px;
@@ -1248,6 +1320,33 @@ tr:hover td {
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--primary);
+}
+
+.timeline-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.timeline-status-completed {
+  color: #1d6c46;
+  background: rgba(74, 197, 128, 0.16);
+}
+
+.timeline-status-current {
+  color: #305fd8;
+  background: rgba(82, 126, 236, 0.14);
+}
+
+.timeline-status-upcoming {
+  color: var(--text-soft);
+  background: rgba(92, 102, 125, 0.1);
 }
 
 .timeline-item h4,
@@ -1265,6 +1364,44 @@ tr:hover td {
   color: var(--text-soft);
   line-height: 1.8;
   font-size: 14px;
+}
+
+.timeline-meter {
+  margin-top: 14px;
+  height: 8px;
+}
+
+.timeline-meta {
+  margin-top: 8px;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.timeline-meta strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.timeline-item-completed::before {
+  box-shadow: 0 0 0 5px rgba(74, 197, 128, 0.16);
+  background: linear-gradient(145deg, #4ac580, #75d6a1);
+}
+
+.timeline-item-completed .timeline-meter span {
+  background: linear-gradient(90deg, #4ac580, #75d6a1);
+}
+
+.timeline-item-upcoming {
+  opacity: 0.72;
+}
+
+.timeline-item-upcoming::before {
+  background: #d5ddef;
+  box-shadow: 0 0 0 5px rgba(213, 221, 239, 0.4);
+}
+
+.timeline-item-upcoming .timeline-meter span {
+  background: linear-gradient(90deg, #d5ddef, #d5ddef);
 }
 
 .teams-grid {
@@ -1490,6 +1627,14 @@ tr:hover td {
 
   .summary-banner-meta {
     width: 100%;
+  }
+
+  .timeline-summary,
+  .timeline-item-head,
+  .timeline-meta {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

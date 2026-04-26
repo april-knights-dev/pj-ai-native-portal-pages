@@ -319,6 +319,91 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+function extractMonthNumbers(value) {
+  return String(value || '').match(/\d{1,2}(?=月)/g)?.map(Number) || [];
+}
+
+function extractBaseYear(value, fallbackYear = new Date().getFullYear()) {
+  const match = String(value || '').match(/(20\d{2})年/);
+  return match ? Number(match[1]) : fallbackYear;
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function computeRangeProgress(now, startDate, endDate) {
+  if (now <= startDate) return 0;
+  if (now >= endDate) return 1;
+  return clamp((now.getTime() - startDate.getTime()) / (endDate.getTime() - startDate.getTime()), 0, 1);
+}
+
+function formatMonthDay(date) {
+  return `${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
+function buildPhaseTimeline(cohort, now = new Date()) {
+  const phases = Array.isArray(cohort.phases) ? cohort.phases : [];
+  const baseYear = extractBaseYear(cohort.period, now.getFullYear());
+  let yearOffset = 0;
+  let previousMonth = null;
+
+  const items = phases.map((phase) => {
+    const months = extractMonthNumbers(phase.period);
+    const startMonth = months[0] || previousMonth || (now.getMonth() + 1);
+    const endMonth = months[months.length - 1] || startMonth;
+
+    if (previousMonth !== null && startMonth < previousMonth) {
+      yearOffset += 1;
+    }
+    previousMonth = endMonth;
+
+    const year = baseYear + yearOffset;
+    const startDate = new Date(year, startMonth - 1, 1, 0, 0, 0, 0);
+    const endDate = new Date(year, endMonth, 0, 23, 59, 59, 999);
+    const progress = computeRangeProgress(now, startDate, endDate);
+
+    let status = 'upcoming';
+    let statusLabel = 'これから';
+    if (now > endDate) {
+      status = 'completed';
+      statusLabel = '完了';
+    } else if (now >= startDate) {
+      status = 'current';
+      statusLabel = '進行中';
+    }
+
+    return {
+      ...phase,
+      startDate,
+      endDate,
+      progressPercent: Math.round(progress * 100),
+      status,
+      statusLabel,
+      rangeLabel: `${formatMonthDay(startDate)} - ${formatMonthDay(endDate)}`,
+    };
+  });
+
+  const startDate = items[0]?.startDate || now;
+  const endDate = items[items.length - 1]?.endDate || now;
+  const overallPercent = Math.round(computeRangeProgress(now, startDate, endDate) * 100);
+  const currentPhase = items.find((item) => item.status === 'current');
+
+  let overallLabel = '開始前';
+  if (now > endDate) {
+    overallLabel = '全フェーズ完了';
+  } else if (currentPhase) {
+    overallLabel = `${currentPhase.name} が進行中`;
+  }
+
+  return {
+    items,
+    overallPercent,
+    overallLabel,
+    todayLabel: formatDisplayDate(now.toISOString()),
+  };
+}
+
 function showPage(name, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
@@ -335,12 +420,21 @@ function showPage(name, btn) {
 function renderOverviewPage() {
   const cohort = D.cohort;
   const memberCount = cohort.teams.reduce((sum, team) => sum + team.members.length, 0);
+  const timelineMeta = buildPhaseTimeline(cohort);
 
-  const phasesHtml = cohort.phases.map(p => `
-    <div class="timeline-item">
-      <span class="period">${p.period}</span>
-      <h4>${p.name}</h4>
-      <p>${p.desc}</p>
+  const phasesHtml = timelineMeta.items.map(item => `
+    <div class="timeline-item timeline-item-${item.status}">
+      <div class="timeline-item-head">
+        <span class="period">${item.period}</span>
+        <span class="timeline-status timeline-status-${item.status}">${item.statusLabel}</span>
+      </div>
+      <h4>${item.name}</h4>
+      <p>${item.desc}</p>
+      <div class="timeline-meter"><span style="width:${item.progressPercent}%"></span></div>
+      <div class="timeline-meta">
+        <span>${item.rangeLabel}</span>
+        <strong>${item.progressPercent}%</strong>
+      </div>
     </div>`).join('');
 
   const teamsHtml = cohort.teams.map(t => `
@@ -373,6 +467,17 @@ function renderOverviewPage() {
     <div class="card">
       <span class="section-kicker">Timeline</span>
       <h2>フェーズ・タイムライン</h2>
+      <div class="timeline-summary">
+        <div>
+          <span class="timeline-summary-label">Current Progress</span>
+          <strong>${timelineMeta.overallLabel}</strong>
+          <p>${timelineMeta.todayLabel} 時点の進行状況</p>
+        </div>
+        <div class="timeline-summary-progress">
+          <div class="timeline-summary-track"><span style="width:${timelineMeta.overallPercent}%"></span></div>
+          <strong>${timelineMeta.overallPercent}%</strong>
+        </div>
+      </div>
       <div class="timeline">${phasesHtml}</div>
     </div>
   </div>
