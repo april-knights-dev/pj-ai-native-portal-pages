@@ -411,22 +411,29 @@ function renderSummaryPage() {
   const blWeek = latestWeek(D.backlog);
   const wGC   = D.gchat.filter(r => r.week_start === gcWeek);
   const wBL   = D.backlog.filter(r => r.week_start === blWeek);
+  const latestLabel = week ? formatDisplayDate(week) : '未取得';
 
   document.getElementById('scoreCards').innerHTML =
-    scoreCard(wGH.reduce((s,r)=>s+(r.commits||0),0),   '今週のコミット数') +
-    scoreCard(wGC.reduce((s,r)=>s+(r.messages_sent||0),0), '今週のChatメッセージ') +
-    scoreCard(wBL.reduce((s,r)=>s+(r.tasks_completed||0),0), '今週の完了タスク');
+    scoreCard(wGH.reduce((s,r)=>s+(r.commits||0),0),   '今週のコミット数', latestLabel) +
+    scoreCard(wGC.reduce((s,r)=>s+(r.messages_sent||0),0), '今週のChatメッセージ', formatDisplayDate(gcWeek || week)) +
+    scoreCard(wBL.reduce((s,r)=>s+(r.tasks_completed||0),0), '今週の完了タスク', formatDisplayDate(blWeek || week));
 
-  document.getElementById('updated-at').textContent = week ? formatDisplayDate(week) : '未取得';
+  document.getElementById('updated-at').textContent = latestLabel;
+  setText('summary-updated', latestLabel);
+  setText('summary-caption', '各チームの週次推移を折れ線で比較し、最新週の活動量はカードと横棒で確認できるようにしています。');
+  setText('meta_chart_week', summaryMeta(src));
+  setText('meta_chart_gchat_week', summaryMeta(D.gchat));
+  setText('meta_chart_backlog_week', summaryMeta(D.backlog));
+  setText('meta_chart_team_activity', latestLabel === '未取得' ? 'データ待ち' : `最新週 ${latestLabel}`);
 
-  renderWeeklyChart(src,      'commits',         'chart_week');
-  renderWeeklyChart(D.gchat,  'messages_sent',   'chart_gchat_week');
-  renderWeeklyChart(D.backlog,'tasks_completed',  'chart_backlog_week');
+  renderWeeklyTrendChart(src,      'commits',         'chart_week');
+  renderWeeklyTrendChart(D.gchat,  'messages_sent',   'chart_gchat_week');
+  renderWeeklyTrendChart(D.backlog,'tasks_completed',  'chart_backlog_week');
   renderTeamActivityChart();
 }
 
-function scoreCard(val, lbl) {
-  return `<div class="score-card"><div class="val">${val}</div><div class="lbl">${lbl}</div></div>`;
+function scoreCard(val, lbl, meta = '') {
+  return `<div class="score-card"><div class="val">${val}</div><div class="lbl">${lbl}</div>${meta ? `<div class="meta">${meta}</div>` : ''}</div>`;
 }
 
 function formatDisplayDate(value) {
@@ -450,25 +457,76 @@ function latestWeek(arr) {
   return arr.map(r => r.week_start).sort().pop();
 }
 
-function renderWeeklyChart(data, metric, elId) {
+function formatCompactDate(value) {
+  if (!value) return '-';
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return `${match[2]}/${match[3]}`;
+  return formatDisplayDate(value);
+}
+
+function summaryMeta(data) {
+  const count = [...new Set((data || []).map(row => row.week_start).filter(Boolean))].length;
+  return count ? `${count}週分` : 'データ待ち';
+}
+
+function renderEmptyChart(elId, message) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = `<div class="chart-empty">${message}</div>`;
+}
+
+function baseChartOptions() {
+  return {
+    backgroundColor: 'transparent',
+    legend: {
+      position: 'top',
+      alignment: 'start',
+      textStyle: { color: '#5c667d', fontSize: 12 },
+    },
+    chartArea: { left: 46, right: 18, top: 34, bottom: 42, width: '100%', height: '74%' },
+    hAxis: {
+      textStyle: { color: '#5c667d', fontSize: 11 },
+      gridlines: { color: 'transparent' },
+      baselineColor: '#d7deea',
+    },
+    vAxis: {
+      minValue: 0,
+      textStyle: { color: '#5c667d', fontSize: 11 },
+      gridlines: { color: '#eef2f8' },
+      baselineColor: '#d7deea',
+      viewWindow: { min: 0 },
+    },
+  };
+}
+
+function renderWeeklyTrendChart(data, metric, elId) {
+  const target = document.getElementById(elId);
+  if (!target) return;
+
   const weeks = [...new Set(data.map(r=>r.week_start))].sort();
   const teams = ['A','B','C'];
   const rows  = [['週', ...teams.map(t=>'Team '+t)]];
   weeks.forEach(w => {
-    const row = [formatDisplayDate(w)];
+    const row = [formatCompactDate(w)];
     teams.forEach(t => row.push(
       data.filter(r=>r.week_start===w&&r.team===t).reduce((s,r)=>s+(r[metric]||0),0)
     ));
     rows.push(row);
   });
-  if (rows.length < 2) return;
+
+  if (rows.length < 2) {
+    renderEmptyChart(elId, '表示できる週次データがまだありません。');
+    return;
+  }
+
   const dt = google.visualization.arrayToDataTable(rows);
-  new google.visualization.ColumnChart(document.getElementById(elId)).draw(dt, {
+  target.innerHTML = '';
+  new google.visualization.LineChart(target).draw(dt, {
+    ...baseChartOptions(),
     colors: [TEAM_COLOR.A, TEAM_COLOR.B, TEAM_COLOR.C],
-    legend: { position:'top' },
-    backgroundColor: 'transparent',
-    isStacked: true,
-    chartArea: { left:40, right:10, top:30, bottom:40 },
+    lineWidth: 3,
+    pointSize: 6,
+    crosshair: { trigger: 'focus', color: '#aeb6c8' },
   });
 }
 
@@ -484,14 +542,35 @@ function renderTeamActivityChart() {
     const gc = D.gchat.filter(r=>r.week_start===gcWeek&&r.team===t).reduce((s,r)=>s+(r.messages_sent||0),0);
     rows.push(['Team '+t, g.c, g.p, bl, gc]);
   });
-  if (rows.length < 2) return;
-  new google.visualization.BarChart(document.getElementById('chart_team_activity'))
+  if (rows.length < 2) {
+    renderEmptyChart('chart_team_activity', '最新週の活動量データがまだありません。');
+    return;
+  }
+
+  const target = document.getElementById('chart_team_activity');
+  target.innerHTML = '';
+  new google.visualization.BarChart(target)
     .draw(google.visualization.arrayToDataTable(rows), {
-      isStacked: true,
-      legend: { position:'top' },
-      backgroundColor: 'transparent',
+      ...baseChartOptions(),
+      isStacked: false,
+      legend: {
+        position: 'top',
+        alignment: 'start',
+        textStyle: { color: '#5c667d', fontSize: 12 },
+      },
       colors: [TEAM_COLOR.B, TEAM_COLOR.A, TEAM_COLOR.C, '#8991A9'],
-      chartArea: { left:60, right:10, top:30, bottom:20 },
+      chartArea: { left: 70, right: 18, top: 34, bottom: 30, width: '100%', height: '76%' },
+      hAxis: {
+        ...baseChartOptions().hAxis,
+        minValue: 0,
+        viewWindow: { min: 0 },
+        gridlines: { color: '#eef2f8' },
+      },
+      vAxis: {
+        ...baseChartOptions().vAxis,
+        textStyle: { color: '#2c3242', fontSize: 12 },
+        gridlines: { color: 'transparent' },
+      },
     });
 }
 

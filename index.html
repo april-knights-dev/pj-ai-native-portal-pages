@@ -207,12 +207,59 @@
         <div id="viewer-notice" class="notice" style="display:none">
           集計データはチーム単位で表示しています。個人データは参加メンバーのみ閲覧できます。
         </div>
+        <div class="summary-banner">
+          <div>
+            <span class="section-kicker">Weekly Snapshot</span>
+            <h2>全体サマリー</h2>
+            <p id="summary-caption">週次の推移と、最新週の活動量を見やすく整理しています。</p>
+          </div>
+          <div class="summary-banner-meta">
+            <span class="meta-label">Latest Week</span>
+            <strong id="summary-updated">-</strong>
+          </div>
+        </div>
         <div class="score-grid" id="scoreCards"></div>
         <div class="grid grid-2">
-          <div class="card"><h3>週次コミット数（チーム別）</h3><div id="chart_week" class="chart-box"></div></div>
-          <div class="card"><h3>Google Chatメッセージ（週次）</h3><div id="chart_gchat_week" class="chart-box"></div></div>
-          <div class="card"><h3>Backlogタスク消化数（週次）</h3><div id="chart_backlog_week" class="chart-box"></div></div>
-          <div class="card"><h3>今週のチーム別活動量</h3><div id="chart_team_activity" class="chart-box"></div></div>
+          <div class="card chart-card">
+            <div class="chart-card-head">
+              <div>
+                <span class="card-eyebrow">GitHub</span>
+                <h3>週次コミット推移</h3>
+              </div>
+              <span id="meta_chart_week" class="chart-meta"></span>
+            </div>
+            <div id="chart_week" class="chart-box"></div>
+          </div>
+          <div class="card chart-card">
+            <div class="chart-card-head">
+              <div>
+                <span class="card-eyebrow">Google Chat</span>
+                <h3>週次メッセージ推移</h3>
+              </div>
+              <span id="meta_chart_gchat_week" class="chart-meta"></span>
+            </div>
+            <div id="chart_gchat_week" class="chart-box"></div>
+          </div>
+          <div class="card chart-card">
+            <div class="chart-card-head">
+              <div>
+                <span class="card-eyebrow">Backlog</span>
+                <h3>週次タスク消化推移</h3>
+              </div>
+              <span id="meta_chart_backlog_week" class="chart-meta"></span>
+            </div>
+            <div id="chart_backlog_week" class="chart-box"></div>
+          </div>
+          <div class="card chart-card">
+            <div class="chart-card-head">
+              <div>
+                <span class="card-eyebrow">Current Week</span>
+                <h3>チーム別活動量</h3>
+              </div>
+              <span id="meta_chart_team_activity" class="chart-meta"></span>
+            </div>
+            <div id="chart_team_activity" class="chart-box"></div>
+          </div>
         </div>
       </div>
 
