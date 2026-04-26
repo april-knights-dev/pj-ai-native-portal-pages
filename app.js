@@ -1301,9 +1301,12 @@ function renderEvalPage() {
     });
   });
 
-  const members = [...new Set(D.eval.map(r=>r.evaluatee))].sort();
+  const allMembers = [...new Set(D.eval.map(r=>r.evaluatee))].sort();
   const role    = D.role;
-  const colSpan = role === 'admin' ? 7 : 6;
+  const isAdmin = role === 'admin';
+  const myName  = D.member_name || '';
+  const members = isAdmin ? allMembers : allMembers.filter(m => m === myName);
+  const colSpan = isAdmin ? 7 : 6;
   let html = '<table><tr><th>メンバー</th><th>チーム</th><th>評価者</th><th>Before平均</th><th>After平均</th><th>成長幅</th>';
   if (role === 'admin') html += '<th>判定 <span style="font-size:11px;font-weight:400;color:#8991A9">※Before評価の内容確認済みをマーク</span></th>';
   html += '</tr>';
@@ -1761,7 +1764,11 @@ function renderClaudePage() {
 // ─── 自己評価 ─────────────────────────────────────────────────
 
 function renderSelfEvalPage() {
-  const selfEval = D.eval.filter(r => r.evaluator_type === '本人評価');
+  const isAdmin = D.role === 'admin';
+  const myName  = D.member_name || '';
+  const selfEval = D.eval.filter(r =>
+    r.evaluator_type === '本人評価' && (isAdmin || r.evaluatee === myName)
+  );
   let html = '<table><tr><th>メンバー</th><th>タイミング</th><th>上流工程力</th><th>実装技術力</th><th>AI活用力</th><th>チームコミュ</th></tr>';
   selfEval.forEach(r => {
     html += `<tr><td>${r.evaluatee}</td><td>${r.timing}</td><td>${r.axis1_avg||'-'}</td>` +
