@@ -23,13 +23,28 @@ google.charts.setOnLoadCallback(init);
 let _pollTimer = null;
 
 function init() {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const urlToken = consumeTokenFromUrl();
+  if (urlToken) {
+    localStorage.setItem(TOKEN_KEY, urlToken);
+  }
+
+  const token = urlToken || localStorage.getItem(TOKEN_KEY);
   if (!token) {
     showSignIn();
     return;
   }
   showLoading();
   fetchData(token);
+}
+
+function consumeTokenFromUrl() {
+  const url = new URL(window.location.href);
+  const token = url.searchParams.get('token');
+  if (!token) return '';
+
+  url.searchParams.delete('token');
+  window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+  return token;
 }
 
 // ─── サインイン / アウト ──────────────────────────────────────
@@ -56,10 +71,20 @@ function startAuthFlow() {
   if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
 
   const state   = randomState();
-  const authUrl = GAS_AUTH_URL + '?action=auth&state=' + state;
+  const authUrl = buildAuthUrl(state);
 
-  // ポップアップを開く（ブロックされても同タブで開く）
-  const popup = window.open(authUrl, 'gas-auth', 'width=480,height=600,popup=yes');
+  // ポップアップを開く。ブロックされた環境では同一タブへフォールバックする。
+  let popup = null;
+  try {
+    popup = window.open(authUrl, 'gas-auth', 'width=480,height=600,popup=yes');
+  } catch (err) {
+    popup = null;
+  }
+
+  if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+    window.location.href = buildAuthUrl(state, currentPortalUrl());
+    return;
+  }
 
   // ローディング表示に切り替えてポーリング開始
   document.getElementById('signin-screen').style.display = 'none';
@@ -106,6 +131,20 @@ function startAuthFlow() {
       })
       .catch(() => {}); // ネットワークエラーは無視してリトライ
   }, 2000);
+}
+
+function buildAuthUrl(state, redirectTo = '') {
+  let url = GAS_AUTH_URL + '?action=auth&state=' + encodeURIComponent(state);
+  if (redirectTo) {
+    url += '&redirect_to=' + encodeURIComponent(redirectTo);
+  }
+  return url;
+}
+
+function currentPortalUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('token');
+  return url.toString();
 }
 
 function cancelAuth() {
