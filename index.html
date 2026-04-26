@@ -9,7 +9,7 @@
 <title>AIネイティブ開発施策 ポータル</title>
 <link rel="icon" href="https://ak-galahad.backlog.com/ProjectIcon.action?iconId=756202&t=20260326165015">
 <link rel="apple-touch-icon" href="https://ak-galahad.backlog.com/ProjectIcon.action?iconId=756202&t=20260326165015">
-<link rel="stylesheet" href="style.css?v=20260426-3">
+<link rel="stylesheet" href="style.css?v=20260426-4">
 </head>
 <body class="portal-body">
 
@@ -18,25 +18,29 @@
   <div class="auth-shell">
     <section class="auth-panel">
       <div class="brand-row">
-        <span class="brand-mark">AK</span>
+        <span class="brand-mark">
+          <img src="https://april-knights.com/images/favicon/favicon.svg" alt="株式会社エイプリルナイツ ロゴ">
+        </span>
         <div>
           <span class="brand-kicker">AI Native Initiative Portal</span>
           <p class="site-caption">April Knights Internal Dashboard</p>
         </div>
       </div>
-      <h1 class="brand-heading">AIネイティブ開発施策の進行状況を、ひとつの画面で。</h1>
+      <h1 class="brand-heading">AIネイティブ開発プロジェクトの動きと成果を、社内にひらく。</h1>
       <p class="brand-copy">
-        GitHub、Google Chat、Backlog、評価データを横断して、期ごとの活動状況と成長を可視化します。
+        GitHub、Google Chat、Backlog、評価データを横断して、各チームの取り組みとメンバーの成長を可視化します。
         april-knights.com アカウントでサインインしてください。
       </p>
       <div class="auth-actions">
         <a id="signin-btn" href="#" class="signin-btn">
-          <svg width="18" height="18" viewBox="0 0 18 18">
-            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
-            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
-            <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
-            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
-          </svg>
+          <span class="google-mark" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 18 18">
+              <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+              <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+              <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+              <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
+            </svg>
+          </span>
           Google アカウントでサインイン
         </a>
         <span class="signin-note">Workspace 認証後、ポータルに自動で戻ります。ポップアップ不可環境では同一タブで認証します。</span>
@@ -45,21 +49,21 @@
     <aside class="auth-aside">
       <div class="aside-card">
         <span class="section-kicker">Overview</span>
-        <h2>運営判断に必要な情報だけを集約</h2>
-        <p>週次活動、個人アクティビティ、評価推移、ゲーミフィケーションを同一トーンで把握できます。</p>
+        <h2>社内メンバー全体で、施策の現在地を共有</h2>
+        <p>各チームの活動状況、評価推移、施策全体の進み方をひとつの画面で横断して確認できます。</p>
       </div>
       <div class="aside-card auth-feature-list">
         <div class="auth-feature">
           <strong>Weekly Activity</strong>
-          <span>チーム別のコミット、Chat、Backlog の動きを時系列で確認。</span>
+          <span>チーム別の GitHub、Chat、Backlog の動きを週次で俯瞰できます。</span>
         </div>
         <div class="auth-feature">
           <strong>Growth Tracking</strong>
-          <span>Before / After の評価差分を、本人・リーダー・責任者の視点で整理。</span>
+          <span>Before / After の評価差分を通じて、施策による成長を継続的に確認できます。</span>
         </div>
         <div class="auth-feature">
-          <strong>Member Visibility</strong>
-          <span>参加メンバーだけが個人データを閲覧できる権限制御付きダッシュボード。</span>
+          <strong>Role Based View</strong>
+          <span>社内向け集計表示と参加メンバー向け詳細表示を、権限に応じて切り替えます。</span>
         </div>
       </div>
     </aside>
@@ -85,7 +89,9 @@
   <div class="app-chrome">
     <header class="site-header">
       <div class="site-header-main">
-        <span class="brand-mark">AK</span>
+        <span class="brand-mark">
+          <img src="https://april-knights.com/images/favicon/favicon.svg" alt="株式会社エイプリルナイツ ロゴ">
+        </span>
         <div class="site-header-copy">
           <span class="brand-kicker">AI Native Initiative Portal</span>
           <h1>AIネイティブ開発施策 ポータル</h1>
