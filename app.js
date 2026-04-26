@@ -21,11 +21,29 @@ google.charts.load('current', { packages: ['corechart', 'bar'], language: 'ja' }
 google.charts.setOnLoadCallback(init);
 
 function init() {
-  // URL の ?token= を処理（GAS Auth からのリダイレクト）
-  const urlToken = new URLSearchParams(location.search).get('token');
+  const urlParams = new URLSearchParams(location.search);
+  const urlToken  = urlParams.get('token');
+  const isPopup   = urlParams.get('popup') === '1';
+
   if (urlToken) {
     localStorage.setItem(TOKEN_KEY, urlToken);
     history.replaceState(null, '', location.pathname);
+
+    if (isPopup) {
+      // ポップアップとして開かれた: 同一オリジン間 postMessage → 自分を閉じる
+      // （accounts.google.com の COOP で window.opener が null になることがある）
+      // → GAS 経由後は GitHub Pages に戻ってくるので同一オリジン間で確実に動く
+      if (window.opener && !window.opener.closed) {
+        try {
+          window.opener.postMessage(
+            { portal_token: urlToken },
+            'https://april-knights-dev.github.io'
+          );
+        } catch (_) {}
+      }
+      window.close();
+      return;
+    }
   }
 
   const token = localStorage.getItem(TOKEN_KEY);
@@ -49,18 +67,21 @@ function showSignIn() {
   btn.href = '#';
   btn.onclick = (ev) => {
     ev.preventDefault();
-    const authUrl = GAS_AUTH_URL + '?action=auth';
+    // ポップアップ用 redirect_to: このページ自身を ?popup=1 付きで渡す
+    const popupReturn = location.origin + location.pathname + '?popup=1';
+    const authUrl = GAS_AUTH_URL + '?action=auth&redirect_to=' + encodeURIComponent(popupReturn);
     const popup = window.open(authUrl, 'gas-auth', 'width=520,height=640,popup=yes');
     if (!popup) {
-      // ポップアップブロック時はフォールバックとしてリダイレクト
-      window.location.href = authUrl + '&redirect_to=' + encodeURIComponent(location.origin + location.pathname);
+      // ポップアップブロック時: popup=1 なしで同タブリダイレクト
+      const sameTabReturn = location.origin + location.pathname;
+      window.location.href = GAS_AUTH_URL + '?action=auth&redirect_to=' + encodeURIComponent(sameTabReturn);
     }
   };
 }
 
-// GAS ポップアップからトークンを受け取る
+// ポップアップ（GitHub Pages）から同一オリジン postMessage でトークンを受け取る
 window.addEventListener('message', (e) => {
-  if (!e.origin.endsWith('.google.com') && !e.origin.endsWith('.googleusercontent.com')) return;
+  if (e.origin !== 'https://april-knights-dev.github.io') return;
   if (e.data && e.data.portal_token) {
     const token = e.data.portal_token;
     localStorage.setItem(TOKEN_KEY, token);
