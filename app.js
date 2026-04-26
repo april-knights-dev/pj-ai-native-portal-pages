@@ -343,7 +343,7 @@ function renderSummaryPage() {
     scoreCard(wGC.reduce((s,r)=>s+(r.messages_sent||0),0), '今週のChatメッセージ') +
     scoreCard(wBL.reduce((s,r)=>s+(r.tasks_completed||0),0), '今週の完了タスク');
 
-  document.getElementById('updated-at').textContent = week || '未取得';
+  document.getElementById('updated-at').textContent = week ? formatDisplayDate(week) : '未取得';
 
   renderWeeklyChart(src,      'commits',         'chart_week');
   renderWeeklyChart(D.gchat,  'messages_sent',   'chart_gchat_week');
@@ -353,6 +353,22 @@ function renderSummaryPage() {
 
 function scoreCard(val, lbl) {
   return `<div class="score-card"><div class="val">${val}</div><div class="lbl">${lbl}</div></div>`;
+}
+
+function formatDisplayDate(value) {
+  if (!value) return '-';
+
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}/${m}/${d}`;
+  }
+
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return `${match[1]}/${match[2]}/${match[3]}`;
+  return String(value);
 }
 
 function latestWeek(arr) {
@@ -365,7 +381,7 @@ function renderWeeklyChart(data, metric, elId) {
   const teams = ['A','B','C'];
   const rows  = [['週', ...teams.map(t=>'Team '+t)]];
   weeks.forEach(w => {
-    const row = [w];
+    const row = [formatDisplayDate(w)];
     teams.forEach(t => row.push(
       data.filter(r=>r.week_start===w&&r.team===t).reduce((s,r)=>s+(r[metric]||0),0)
     ));
@@ -440,7 +456,7 @@ function renderMemberPage() {
   const weeks = [...new Set(D.github.map(r=>r.week_start))].sort();
   const trendRows = [['週', ...filtMembers]];
   weeks.forEach(w => {
-    const row = [w];
+    const row = [formatDisplayDate(w)];
     filtMembers.forEach(m => row.push(
       D.github.filter(r=>r.week_start===w&&r.member===m).reduce((s,r)=>s+(r.commits||0),0)
     ));
