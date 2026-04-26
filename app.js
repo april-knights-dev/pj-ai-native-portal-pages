@@ -258,7 +258,7 @@ function renderApp() {
 
   // 評価テーブルタイトル（admin は承認ボタンあり）
   if (role === 'admin') {
-    document.getElementById('evalTableTitle').textContent = 'Before→After 成長スコア（管理者: 承認ボタンで確認済みにできます）';
+    document.getElementById('evalTableTitle').textContent = 'Before→After 成長スコア';
     document.getElementById('adminEvalSection').style.display = 'block';
   }
 
@@ -863,10 +863,27 @@ function renderMemberPage() {
 
 // ─── 評価スコア ─────────────────────────────────────────────────
 
+function getMemberTeam(name) {
+  if (!D || !D.cohort || !Array.isArray(D.cohort.teams)) return '';
+  for (const team of D.cohort.teams) {
+    if ((team.members || []).some(m => name.includes(m) || m.includes(name))) return team.id;
+  }
+  return '';
+}
+
 function renderEvalPage() {
+  const noDataStyle = 'display:flex;align-items:center;justify-content:center;height:100%;min-height:200px;color:#8991A9;font-size:14px;flex-direction:column;gap:8px';
+
   ['before','after'].forEach(timing => {
     const rows = D.eval.filter(r => r.timing === timing && r.evaluator_type === '本人評価');
-    if (!rows.length) return;
+    const id = timing === 'before' ? 'chart_radar_before' : 'chart_radar_after';
+    if (!rows.length) {
+      const msg = timing === 'after'
+        ? '<span>After評価はまだ実施されていません</span><span style="font-size:12px">施策終了後に評価フォームへの回答が集まると表示されます</span>'
+        : '<span>データがありません</span>';
+      document.getElementById(id).innerHTML = `<div style="${noDataStyle}">${msg}</div>`;
+      return;
+    }
     const axes   = ['axis1_avg','axis2_avg','axis3_avg','axis4_avg'];
     const labels = ['上流工程力','実装技術力','AI活用力','チームコミュ'];
     const dt = new google.visualization.DataTable();
@@ -875,12 +892,11 @@ function renderEvalPage() {
     labels.forEach((lbl, i) => {
       const row = [lbl];
       ['A','B','C'].forEach(t => {
-        const vals = rows.filter(r=>r.team===t).map(r=>parseFloat(r[axes[i]])||0);
+        const vals = rows.filter(r=>getMemberTeam(r.evaluatee)===t).map(r=>parseFloat(r[axes[i]])||0);
         row.push(vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0);
       });
       dt.addRow(row);
     });
-    const id = timing === 'before' ? 'chart_radar_before' : 'chart_radar_after';
     new google.visualization.LineChart(document.getElementById(id)).draw(dt, {
       colors: [TEAM_COLOR.A, TEAM_COLOR.B, TEAM_COLOR.C],
       legend: { position:'top' },
@@ -891,9 +907,14 @@ function renderEvalPage() {
 
   const members = [...new Set(D.eval.map(r=>r.evaluatee))].sort();
   const role    = D.role;
+  const colSpan = role === 'admin' ? 7 : 6;
   let html = '<table><tr><th>メンバー</th><th>チーム</th><th>評価者</th><th>Before平均</th><th>After平均</th><th>成長幅</th>';
-  if (role === 'admin') html += '<th>判定</th>';
+  if (role === 'admin') html += '<th>判定 <span style="font-size:11px;font-weight:400;color:#8991A9">※Before評価の内容確認済みをマーク</span></th>';
   html += '</tr>';
+
+  if (!members.length) {
+    html += `<tr><td colspan="${colSpan}" style="color:#8991A9;text-align:center;padding:24px">評価データがまだありません</td></tr>`;
+  }
 
   members.forEach(m => {
     ['本人評価','チームリーダー','施策責任者（畠山）'].forEach(etype => {
@@ -906,16 +927,17 @@ function renderEvalPage() {
       };
       const b = avg(before), a = avg(after);
       const diff  = (b!=='-'&&a!=='-') ? (parseFloat(a)-parseFloat(b)).toFixed(2) : '-';
-      const team  = before[0]?.team || '';
+      const team  = getMemberTeam(m);
       const color = diff>0 ? 'color:#527EEC;font-weight:700' : diff<0 ? 'color:#D34B4B' : '';
       const approved = before[0]?.admin_approved;
-      html += `<tr><td>${m}</td><td><span class="badge badge-${team.toLowerCase()}">${team}</span></td>`;
+      html += `<tr><td>${m}</td><td><span class="badge badge-${team.toLowerCase()}">${team || '?'}</span></td>`;
       html += `<td>${etype}</td><td>${b}</td><td>${a}</td>`;
       html += `<td style="${color}">${diff>0?'+':''}${diff}</td>`;
       if (role === 'admin') {
         const btnClass = approved ? 'approved-btn done' : 'approved-btn';
         const disabled  = approved ? ' disabled' : '';
-        html += `<td><button class="${btnClass}"${disabled} onclick="approveEval('${m}','before')">${approved?'承認済み':'承認する'}</button></td>`;
+        const tip = 'Before評価の内容を管理者が確認済みであることを記録します（確認後は変更不可）';
+        html += `<td><button class="${btnClass}"${disabled} title="${tip}" onclick="approveEval('${m}','before')">${approved?'確認済み':'確認する'}</button></td>`;
       }
       html += '</tr>';
     });
