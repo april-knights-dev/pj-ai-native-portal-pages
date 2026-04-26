@@ -342,6 +342,88 @@
           </div>
         </div>
       </div>
+      <!-- PAGE: AI活用 -->
+      <div id="page_claude" class="page">
+        <div class="summary-banner">
+          <div>
+            <span class="section-kicker">Claude Code Usage</span>
+            <h2>AI活用状況</h2>
+            <p>メンバーの Claude Code 活用状況（トークン消費・推定コスト・スキル・サブエージェント活用）を追跡します。</p>
+          </div>
+        </div>
+        <div class="score-grid" id="claude-kpi-cards"></div>
+        <div class="grid grid-2">
+          <div class="card chart-card">
+            <div class="chart-card-head">
+              <div>
+                <span class="card-eyebrow">Weekly Tokens</span>
+                <h3>週次トークン推移（K）</h3>
+              </div>
+            </div>
+            <div id="chart_claude_trend" class="chart-box"></div>
+          </div>
+          <div class="card chart-card">
+            <div class="chart-card-head">
+              <div>
+                <span class="card-eyebrow">Sessions per Member</span>
+                <h3>メンバー別セッション数</h3>
+              </div>
+            </div>
+            <div id="chart_claude_sessions" class="chart-box"></div>
+          </div>
+          <div class="card chart-card">
+            <div class="chart-card-head">
+              <div>
+                <span class="card-eyebrow">Skills</span>
+                <h3>スキル活用 Top10</h3>
+              </div>
+            </div>
+            <div id="chart_claude_skills" class="chart-box"></div>
+          </div>
+          <div class="card chart-card">
+            <div class="chart-card-head">
+              <div>
+                <span class="card-eyebrow">Sub-agents</span>
+                <h3>サブエージェント分布</h3>
+              </div>
+            </div>
+            <div id="chart_claude_subagents" class="chart-box"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>メンバー別 Claude Code サマリー</h3>
+          <div id="claude-member-table"></div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <span class="section-kicker">Setup</span>
+          <h2>使用状況トラッキングの導入</h2>
+          <p class="overview-copy">
+            各メンバーの Claude Code セッション終了時に使用状況（トークン・スキル・サブエージェント）を自動収集します。<br>
+            以下のコマンドを<strong>メンバーの Mac 上で 1 回だけ</strong>実行してください。
+          </p>
+          <div class="setup-block">
+            <div class="setup-step">
+              <span class="setup-step-num">1</span>
+              <div>
+                <strong>Stop hook をインストール</strong>
+                <p>ターミナルで以下を実行します。<code>~/.claude/settings.json</code> に Stop hook が自動追加されます。</p>
+                <pre class="code-block">curl -fsSL https://april-knights-dev.github.io/pj-ai-native-portal-pages/setup-claude-hook.sh | bash</pre>
+              </div>
+            </div>
+            <div class="setup-step">
+              <span class="setup-step-num">2</span>
+              <div>
+                <strong>動作確認</strong>
+                <p><code>ai-native-team-a/b/c</code> リポジトリで Claude Code セッションを終了すると、次の更新でこの画面にデータが反映されます。</p>
+              </div>
+            </div>
+          </div>
+          <p class="overview-note">
+            収集対象: <code>ai-native</code> を含むプロジェクトのみ（個人プロジェクトは収集されません）<br>
+            収集内容: トークン数・使用モデル・スキル呼び出し・サブエージェント呼び出し（コードの内容は収集しません）
+          </p>
+        </div>
+      </div>
     </main>
 
     <footer class="site-footer">

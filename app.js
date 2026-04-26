@@ -232,6 +232,7 @@ function renderApp() {
     { id: 'eval',         label: '評価スコア',           roles: ['admin','member'] },
     { id: 'gamification', label: 'ゲーミフィケーション', roles: ['admin','member'] },
     { id: 'selfevals',    label: '自己評価',             roles: ['admin','member'] },
+    { id: 'claude',       label: 'AI活用',               roles: ['admin','member'] },
   ].filter(p => p.roles.includes(role));
 
   const nav = document.getElementById('main-nav');
@@ -468,6 +469,7 @@ function showPage(name, btn) {
   if (name === 'eval')         renderEvalPage();
   if (name === 'gamification') renderGamificationPage();
   if (name === 'selfevals')    renderSelfEvalPage();
+  if (name === 'claude')       requestAnimationFrame(() => renderClaudePage());
 }
 
 function handleWindowResize() {
@@ -484,6 +486,8 @@ function handleWindowResize() {
       renderEvalPage();
     } else if (activePage.id === 'page_gamification') {
       renderGamificationPage();
+    } else if (activePage.id === 'page_claude') {
+      renderClaudePage();
     }
   }, 120);
 }
@@ -976,6 +980,172 @@ function renderGamificationPage() {
   });
   html += '</table>';
   document.getElementById('rankTable').innerHTML = html;
+}
+
+// ─── AI活用 ───────────────────────────────────────────────────
+
+const CLAUDE_PRICES = {
+  'claude-opus-4-7':   { in: 5, out: 25,  cr: 0.50, cc: 6.25 },
+  'claude-opus-4-5':   { in: 5, out: 25,  cr: 0.50, cc: 6.25 },
+  'claude-sonnet-4-6': { in: 3, out: 15,  cr: 0.30, cc: 3.75 },
+  'claude-sonnet-4-5': { in: 3, out: 15,  cr: 0.30, cc: 3.75 },
+  'claude-haiku-4-5':  { in: 1, out: 5,   cr: 0.10, cc: 1.25 },
+};
+
+function calcClaudeCost_(rows) {
+  const p = CLAUDE_PRICES['claude-sonnet-4-6'];
+  return rows.reduce((total, r) => total +
+    (r.input_tokens / 1e6) * p.in +
+    (r.output_tokens / 1e6) * p.out +
+    (r.cache_read_tokens / 1e6) * p.cr +
+    (r.cache_creation_tokens / 1e6) * p.cc, 0);
+}
+
+function renderClaudePage() {
+  const weekly    = (D.claude && D.claude.weekly)    || [];
+  const skills    = (D.claude && D.claude.skills)    || [];
+  const subagents = (D.claude && D.claude.subagents) || [];
+
+  // ─── KPI カード ─────────────────────────────────────────────
+  const totalSessions = weekly.reduce((s, r) => s + (r.sessions || 0), 0);
+  const totalTokensM  = weekly.reduce((s, r) =>
+    s + (r.input_tokens + r.output_tokens + r.cache_read_tokens + r.cache_creation_tokens) / 1e6, 0);
+  const totalCost     = calcClaudeCost_(weekly);
+
+  document.getElementById('claude-kpi-cards').innerHTML =
+    scoreCard(totalSessions,          '累計セッション数',             '') +
+    scoreCard('$' + totalCost.toFixed(2), '推定コスト（Sonnet基準）', '') +
+    scoreCard(totalTokensM.toFixed(1) + 'M', '総トークン数',          '');
+
+  // ─── 週次トークン推移 ─────────────────────────────────────────
+  (function() {
+    const target = document.getElementById('chart_claude_trend');
+    if (!target) return;
+    const weeks = [...new Set(weekly.map(r => r.week_start))].sort();
+    if (weeks.length === 0) { renderEmptyChart('chart_claude_trend', 'データが送信されるとここに表示されます。'); return; }
+    const rows = [['週', 'Team A', 'Team B', 'Team C']];
+    weeks.forEach(w => {
+      const row = [formatCompactDate(w)];
+      ['A','B','C'].forEach(t => {
+        const total = weekly.filter(r => r.week_start === w && r.team === t)
+          .reduce((s, r) => s + r.input_tokens + r.output_tokens + r.cache_read_tokens + r.cache_creation_tokens, 0);
+        row.push(Math.round(total / 1000)); // K tokens
+      });
+      rows.push(row);
+    });
+    target.innerHTML = '';
+    new google.visualization.LineChart(target).draw(
+      google.visualization.arrayToDataTable(rows), {
+        ...baseChartOptions(),
+        ...sizedChartOptions(target, { left: 50, right: 10, top: 34, bottom: 34 }),
+        colors: [TEAM_COLOR.A, TEAM_COLOR.B, TEAM_COLOR.C],
+        lineWidth: 3, pointSize: 6,
+        vAxis: { ...baseChartOptions().vAxis, title: 'トークン（K）' },
+      }
+    );
+  })();
+
+  // ─── メンバー別セッション数 ───────────────────────────────────
+  (function() {
+    const target = document.getElementById('chart_claude_sessions');
+    if (!target) return;
+    const memberTotals = {};
+    weekly.forEach(r => {
+      if (!memberTotals[r.member]) memberTotals[r.member] = { sessions: 0, team: r.team };
+      memberTotals[r.member].sessions += r.sessions || 0;
+    });
+    const entries = Object.entries(memberTotals).sort((a, b) => b[1].sessions - a[1].sessions);
+    if (entries.length === 0) { renderEmptyChart('chart_claude_sessions', 'データが送信されるとここに表示されます。'); return; }
+    const rows = [['メンバー', 'セッション数', { role: 'style' }]];
+    entries.forEach(([name, v]) => {
+      rows.push([name, v.sessions, 'color:' + (TEAM_COLOR[v.team] || TEAM_COLOR.B)]);
+    });
+    target.innerHTML = '';
+    new google.visualization.BarChart(target).draw(
+      google.visualization.arrayToDataTable(rows), {
+        ...baseChartOptions(),
+        ...sizedChartOptions(target, { left: 70, right: 10, top: 20, bottom: 24 }),
+        legend: 'none',
+      }
+    );
+  })();
+
+  // ─── スキル Top10 ─────────────────────────────────────────────
+  (function() {
+    const target = document.getElementById('chart_claude_skills');
+    if (!target) return;
+    const top = skills.slice(0, 10);
+    if (top.length === 0) { renderEmptyChart('chart_claude_skills', 'スキル使用実績がまだありません。'); return; }
+    const rows = [['スキル', '件数']];
+    top.forEach(s => rows.push([s.name, s.count]));
+    target.innerHTML = '';
+    new google.visualization.BarChart(target).draw(
+      google.visualization.arrayToDataTable(rows), {
+        ...baseChartOptions(),
+        ...sizedChartOptions(target, { left: 120, right: 10, top: 20, bottom: 24 }),
+        legend: 'none',
+        colors: [TEAM_COLOR.B],
+      }
+    );
+  })();
+
+  // ─── サブエージェント分布 ─────────────────────────────────────
+  (function() {
+    const target = document.getElementById('chart_claude_subagents');
+    if (!target) return;
+    if (subagents.length === 0) { renderEmptyChart('chart_claude_subagents', 'サブエージェント使用実績がまだありません。'); return; }
+    const rows = [['タイプ', '件数']];
+    subagents.forEach(s => rows.push([s.type, s.count]));
+    target.innerHTML = '';
+    new google.visualization.BarChart(target).draw(
+      google.visualization.arrayToDataTable(rows), {
+        ...baseChartOptions(),
+        ...sizedChartOptions(target, { left: 80, right: 10, top: 20, bottom: 24 }),
+        legend: 'none',
+        colors: [TEAM_COLOR.C],
+      }
+    );
+  })();
+
+  // ─── メンバー別サマリーテーブル ───────────────────────────────
+  const memberSummary = {};
+  weekly.forEach(r => {
+    if (!memberSummary[r.member]) memberSummary[r.member] = {
+      team: r.team, sessions: 0, turns: 0,
+      input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_creation_tokens: 0,
+      skill_calls: 0, subagent_calls: 0,
+    };
+    const m = memberSummary[r.member];
+    m.sessions      += r.sessions      || 0;
+    m.turns         += r.turns         || 0;
+    m.input_tokens  += r.input_tokens  || 0;
+    m.output_tokens += r.output_tokens || 0;
+    m.cache_read_tokens    += r.cache_read_tokens    || 0;
+    m.cache_creation_tokens += r.cache_creation_tokens || 0;
+    m.skill_calls   += r.skill_calls   || 0;
+    m.subagent_calls += r.subagent_calls || 0;
+  });
+
+  const memberEntries = Object.entries(memberSummary)
+    .sort((a, b) => b[1].sessions - a[1].sessions);
+
+  let tHtml = '<table><tr><th>メンバー</th><th>チーム</th><th>セッション</th><th>総ターン</th>' +
+    '<th>総トークン</th><th>推定コスト</th><th>スキル呼出</th><th>Subagent</th></tr>';
+  if (memberEntries.length === 0) {
+    tHtml += '<tr><td colspan="8" style="color:#8991A9;text-align:center">まだデータがありません。下のセットアップ手順でフックを導入してください。</td></tr>';
+  } else {
+    memberEntries.forEach(([name, v]) => {
+      const totalTok = ((v.input_tokens + v.output_tokens + v.cache_read_tokens + v.cache_creation_tokens) / 1e6).toFixed(2);
+      const cost = calcClaudeCost_([v]).toFixed(3);
+      tHtml += `<tr><td>${escapeHtml(name)}</td>` +
+        `<td><span class="badge badge-${v.team.toLowerCase()}">${v.team}</span></td>` +
+        `<td>${v.sessions}</td><td>${v.turns}</td>` +
+        `<td>${totalTok}M</td><td>$${cost}</td>` +
+        `<td>${v.skill_calls}</td><td>${v.subagent_calls}</td></tr>`;
+    });
+  }
+  tHtml += '</table>';
+  document.getElementById('claude-member-table').innerHTML = tHtml;
 }
 
 // ─── 自己評価 ─────────────────────────────────────────────────
