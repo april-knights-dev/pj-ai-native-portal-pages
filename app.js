@@ -795,7 +795,6 @@ function renderTeamActivityChart() {
 function renderMemberPage() {
   const selMember = document.getElementById('filterMember').value;
   const selTeam   = document.getElementById('filterTeam').value;
-  const week      = latestActiveWeek(D.github, ['commits', 'prs_opened', 'prs_merged', 'reviews_given']);
 
   const sel     = document.getElementById('filterMember');
   const cur     = sel.value;
@@ -803,12 +802,21 @@ function renderMemberPage() {
   sel.innerHTML = '<option value="">全メンバー</option>' +
     members.map(m=>`<option value="${m}"${cur===m?' selected':''}>${m}</option>`).join('');
 
-  let filtered = D.github.filter(r => r.week_start === week);
+  // 全期間累積：メンバーごとに合算
+  const ghCumulative = {};
+  D.github.forEach(r => {
+    if (!ghCumulative[r.member]) ghCumulative[r.member] = { member: r.member, team: r.team, commits: 0, prs_opened: 0, prs_merged: 0, reviews_given: 0 };
+    ghCumulative[r.member].commits      += r.commits       || 0;
+    ghCumulative[r.member].prs_opened   += r.prs_opened    || 0;
+    ghCumulative[r.member].prs_merged   += r.prs_merged    || 0;
+    ghCumulative[r.member].reviews_given += r.reviews_given || 0;
+  });
+  let filtered = Object.values(ghCumulative);
   if (selTeam)   filtered = filtered.filter(r => r.team === selTeam);
   if (selMember) filtered = filtered.filter(r => r.member === selMember);
 
   const chartRows = [['メンバー','コミット','PRオープン','PRマージ','レビュー提出']];
-  filtered.forEach(r => chartRows.push([r.member, r.commits||0, r.prs_opened||0, r.prs_merged||0, r.reviews_given||0]));
+  filtered.forEach(r => chartRows.push([r.member, r.commits, r.prs_opened, r.prs_merged, r.reviews_given]));
   if (chartRows.length > 1) {
     new google.visualization.BarChart(document.getElementById('chart_member'))
       .draw(google.visualization.arrayToDataTable(chartRows), {
@@ -840,13 +848,11 @@ function renderMemberPage() {
       });
   }
 
-  const gcWeek = latestActiveWeek(D.gchat, ['messages_sent']);
-  const blWeek = latestActiveWeek(D.backlog, ['tasks_completed']);
   let html = '<table><tr><th>メンバー</th><th>チーム</th><th>コミット</th><th>PR</th><th>レビュー</th><th>Chatメッセージ</th><th>完了タスク</th></tr>';
   filtMembers.forEach(m => {
-    const g  = D.github.filter(r=>r.week_start===week&&r.member===m)[0] || {};
-    const gc = D.gchat.filter(r=>r.week_start===gcWeek&&r.member===m).reduce((s,r)=>s+(r.messages_sent||0),0);
-    const bl = D.backlog.filter(r=>r.week_start===blWeek&&r.member===m).reduce((s,r)=>s+(r.tasks_completed||0),0);
+    const g  = ghCumulative[m] || {};
+    const gc = D.gchat.filter(r=>r.member===m).reduce((s,r)=>s+(r.messages_sent||0),0);
+    const bl = D.backlog.filter(r=>r.member===m).reduce((s,r)=>s+(r.tasks_completed||0),0);
     const team = g.team || '';
     html += `<tr><td>${m}</td><td><span class="badge badge-${team.toLowerCase()}">${team}</span></td>` +
       `<td>${g.commits||0}</td><td>${g.prs_opened||0}</td><td>${g.reviews_given||0}</td><td>${gc}</td><td>${bl}</td></tr>`;
