@@ -197,8 +197,8 @@ function fetchData(token) {
       }
       D = data;
       applyLandingMeta(D.cohort);
-      renderApp();
       showApp();
+      renderApp();
     })
     .catch(err => {
       console.error('データ取得エラー:', err);
@@ -588,7 +588,7 @@ function baseChartOptions() {
       alignment: 'start',
       textStyle: { color: '#5c667d', fontSize: 12 },
     },
-    chartArea: { left: 46, right: 18, top: 34, bottom: 42, width: '100%', height: '74%' },
+    chartArea: { left: 44, right: 8, top: 34, bottom: 42, width: '90%', height: '76%' },
     hAxis: {
       textStyle: { color: '#5c667d', fontSize: 11 },
       gridlines: { color: 'transparent' },
@@ -664,7 +664,7 @@ function renderTeamActivityChart() {
         textStyle: { color: '#5c667d', fontSize: 12 },
       },
       colors: [TEAM_COLOR.B, TEAM_COLOR.A, TEAM_COLOR.C, '#8991A9'],
-      chartArea: { left: 70, right: 18, top: 34, bottom: 30, width: '100%', height: '76%' },
+      chartArea: { left: 70, right: 8, top: 34, bottom: 30, width: '88%', height: '78%' },
       hAxis: {
         ...baseChartOptions().hAxis,
         minValue: 0,
