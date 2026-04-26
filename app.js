@@ -562,7 +562,7 @@ function renderOverviewPage() {
   <div class="card" style="margin-top:16px">
     <span class="section-kicker">Evaluation Policy</span>
     <h2>評価について</h2>
-    <p class="overview-copy">
+    <p class="overview-copy evaluation-copy">
       本施策の評価は、参加メンバーを序列化するためではなく、<strong>成長の可視化と次の育成支援</strong> に活用する前提で扱います。<br>
       施策責任者・チームリーダー・本人の 3 者評価をもとに、振り返り、次期アサイン、施策改善の参考情報として整理します。<br>
       なお、本施策のスコアだけで人事評価や処遇を決めるのではなく、日常業務での成果や上長評価とあわせて補助的に扱う想定です。

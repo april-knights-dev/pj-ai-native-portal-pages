@@ -1272,6 +1272,10 @@ tr:hover td {
   max-width: 62ch;
 }
 
+.evaluation-copy {
+  max-width: none;
+}
+
 .overview-facts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
