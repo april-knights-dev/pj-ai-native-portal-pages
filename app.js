@@ -20,43 +20,24 @@ let D = null; // ポータルデータ（fetchData後にセット）
 google.charts.load('current', { packages: ['corechart', 'bar'], language: 'ja' });
 google.charts.setOnLoadCallback(init);
 
+let _pollTimer = null;
+
 function init() {
-  const urlParams = new URLSearchParams(location.search);
-  const urlToken  = urlParams.get('token');
-  const isPopup   = urlParams.get('popup') === '1';
-
-  if (urlToken) {
-    localStorage.setItem(TOKEN_KEY, urlToken);
-    history.replaceState(null, '', location.pathname);
-
-    if (isPopup) {
-      // ポップアップとして開かれた: 同一オリジン間 postMessage → 自分を閉じる
-      // （accounts.google.com の COOP で window.opener が null になることがある）
-      // → GAS 経由後は GitHub Pages に戻ってくるので同一オリジン間で確実に動く
-      if (window.opener && !window.opener.closed) {
-        try {
-          window.opener.postMessage(
-            { portal_token: urlToken },
-            'https://april-knights-dev.github.io'
-          );
-        } catch (_) {}
-      }
-      window.close();
-      return;
-    }
-  }
-
   const token = localStorage.getItem(TOKEN_KEY);
   if (!token) {
     showSignIn();
     return;
   }
-
   showLoading();
   fetchData(token);
 }
 
 // ─── サインイン / アウト ──────────────────────────────────────
+
+function randomState() {
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+}
 
 function showSignIn() {
   document.getElementById('signin-screen').style.display = 'flex';
@@ -67,28 +48,54 @@ function showSignIn() {
   btn.href = '#';
   btn.onclick = (ev) => {
     ev.preventDefault();
-    // ポップアップ用 redirect_to: このページ自身を ?popup=1 付きで渡す
-    const popupReturn = location.origin + location.pathname + '?popup=1';
-    const authUrl = GAS_AUTH_URL + '?action=auth&redirect_to=' + encodeURIComponent(popupReturn);
-    const popup = window.open(authUrl, 'gas-auth', 'width=520,height=640,popup=yes');
-    if (!popup) {
-      // ポップアップブロック時: popup=1 なしで同タブリダイレクト
-      const sameTabReturn = location.origin + location.pathname;
-      window.location.href = GAS_AUTH_URL + '?action=auth&redirect_to=' + encodeURIComponent(sameTabReturn);
-    }
+    startAuthFlow();
   };
 }
 
-// ポップアップ（GitHub Pages）から同一オリジン postMessage でトークンを受け取る
-window.addEventListener('message', (e) => {
-  if (e.origin !== 'https://april-knights-dev.github.io') return;
-  if (e.data && e.data.portal_token) {
-    const token = e.data.portal_token;
-    localStorage.setItem(TOKEN_KEY, token);
-    showLoading();
-    fetchData(token);
-  }
-});
+function startAuthFlow() {
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+
+  const state   = randomState();
+  const authUrl = GAS_AUTH_URL + '?action=auth&state=' + state;
+
+  // ポップアップを開く（ブロックされても同タブで開く）
+  const popup = window.open(authUrl, 'gas-auth', 'width=480,height=600,popup=yes');
+
+  // ローディング表示に切り替えてポーリング開始
+  document.getElementById('signin-screen').style.display = 'none';
+  document.getElementById('loading-screen').style.display = 'flex';
+  document.getElementById('loading-screen').innerHTML =
+    '<div class="spinner"></div>' +
+    '<p style="font-size:14px;color:#666">Google 認証中...<br>' +
+    '<span style="font-size:12px">認証完了後、このページが自動更新されます</span></p>' +
+    '<button onclick="cancelAuth()" style="margin-top:16px;padding:6px 16px;' +
+    'border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer;font-size:13px">' +
+    'キャンセル</button>';
+
+  let elapsed = 0;
+  _pollTimer = setInterval(() => {
+    elapsed += 2;
+    if (elapsed > 300) { cancelAuth(); return; } // 5分タイムアウト
+    fetch(GAS_API_URL + '?action=check_state&state=' + state)
+      .then(r => r.json())
+      .then(data => {
+        if (data.token) {
+          clearInterval(_pollTimer); _pollTimer = null;
+          if (popup && !popup.closed) popup.close();
+          localStorage.setItem(TOKEN_KEY, data.token);
+          document.getElementById('loading-screen').innerHTML =
+            '<div class="spinner"></div><p style="font-size:14px;color:#666">データ読み込み中...</p>';
+          fetchData(data.token);
+        }
+      })
+      .catch(() => {}); // ネットワークエラーは無視してリトライ
+  }, 2000);
+}
+
+function cancelAuth() {
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+  showSignIn();
+}
 
 function showLoading() {
   document.getElementById('signin-screen').style.display = 'none';
