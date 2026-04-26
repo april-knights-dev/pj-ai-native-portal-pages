@@ -4,133 +4,243 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AIネイティブ開発施策 ポータル</title>
+<link rel="icon" href="https://ak-galahad.backlog.com/ProjectIcon.action?iconId=756202&t=20260326165015">
+<link rel="apple-touch-icon" href="https://ak-galahad.backlog.com/ProjectIcon.action?iconId=756202&t=20260326165015">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="portal-body">
 
 <!-- 認証前 -->
 <div id="signin-screen">
-  <h1>AIネイティブ開発施策 ポータル</h1>
-  <p>april-knights.com アカウントでサインインしてください</p>
-  <a id="signin-btn" href="#" class="signin-btn">
-    <svg width="18" height="18" viewBox="0 0 18 18">
-      <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
-      <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
-      <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
-      <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
-    </svg>
-    Google アカウントでサインイン
-  </a>
+  <div class="auth-shell">
+    <section class="auth-panel">
+      <div class="brand-row">
+        <span class="brand-mark">AK</span>
+        <div>
+          <span class="brand-kicker">AI Native Initiative Portal</span>
+          <p class="site-caption">April Knights Internal Dashboard</p>
+        </div>
+      </div>
+      <h1 class="brand-heading">AIネイティブ開発施策の進行状況を、ひとつの画面で。</h1>
+      <p class="brand-copy">
+        GitHub、Google Chat、Backlog、評価データを横断して、期ごとの活動状況と成長を可視化します。
+        april-knights.com アカウントでサインインしてください。
+      </p>
+      <div class="auth-actions">
+        <a id="signin-btn" href="#" class="signin-btn">
+          <svg width="18" height="18" viewBox="0 0 18 18">
+            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+            <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
+          </svg>
+          Google アカウントでサインイン
+        </a>
+        <span class="signin-note">Workspace 認証後、ポータルに自動で戻ります。</span>
+      </div>
+    </section>
+    <aside class="auth-aside">
+      <div class="aside-card">
+        <span class="section-kicker">Overview</span>
+        <h2>運営判断に必要な情報だけを集約</h2>
+        <p>週次活動、個人アクティビティ、評価推移、ゲーミフィケーションを同一トーンで把握できます。</p>
+      </div>
+      <div class="aside-card auth-feature-list">
+        <div class="auth-feature">
+          <strong>Weekly Activity</strong>
+          <span>チーム別のコミット、Chat、Backlog の動きを時系列で確認。</span>
+        </div>
+        <div class="auth-feature">
+          <strong>Growth Tracking</strong>
+          <span>Before / After の評価差分を、本人・リーダー・責任者の視点で整理。</span>
+        </div>
+        <div class="auth-feature">
+          <strong>Member Visibility</strong>
+          <span>参加メンバーだけが個人データを閲覧できる権限制御付きダッシュボード。</span>
+        </div>
+      </div>
+    </aside>
+  </div>
 </div>
 
 <!-- ローディング -->
 <div id="loading-screen">
-  <div class="spinner"></div>
-  <p style="font-size:14px;color:#666">データを読み込み中...</p>
+  <div class="loading-shell">
+    <div class="loading-panel">
+      <div class="spinner"></div>
+      <div>
+        <span class="brand-kicker">Loading Portal</span>
+        <h1>データを読み込み中...</h1>
+        <p class="loading-copy">各サービスから集約済みデータを取得して、最新のダッシュボードを描画しています。</p>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- アプリ本体 -->
 <div id="app">
-  <header>
-    <h1>AIネイティブ開発施策 ポータル</h1>
-    <span id="role-badge" class="role-badge"></span>
-    <span id="updated-at" style="font-size:12px;opacity:.7"></span>
-    <button class="signout-btn" onclick="signOut()">サインアウト</button>
-  </header>
+  <div class="app-chrome">
+    <header class="site-header">
+      <div class="site-header-main">
+        <span class="brand-mark">AK</span>
+        <div class="site-header-copy">
+          <span class="brand-kicker">AI Native Initiative Portal</span>
+          <h1>AIネイティブ開発施策 ポータル</h1>
+          <p>週次活動と成長評価を、エイプリルナイツのブランドトーンで可視化する内部ダッシュボードです。</p>
+        </div>
+      </div>
+      <div class="site-header-actions">
+        <span id="role-badge" class="role-badge"></span>
+        <span class="meta-chip">
+          <span class="meta-label">Updated</span>
+          <span id="updated-at">-</span>
+        </span>
+        <button class="signout-btn" onclick="signOut()">サインアウト</button>
+      </div>
+    </header>
 
-  <nav id="main-nav"></nav>
-
-  <!-- PAGE: 施策概要 -->
-  <div id="page_overview" class="page active">
-    <div id="overview-content"></div>
-  </div>
-
-  <!-- PAGE: 全体サマリー -->
-  <div id="page_summary" class="page">
-    <div id="viewer-notice" class="notice" style="display:none">
-      集計データはチーム単位で表示しています。個人データは参加メンバーのみ閲覧できます。
-    </div>
-    <div class="score-grid" id="scoreCards"></div>
-    <div class="grid grid-2">
-      <div class="card"><h3>週次コミット数（チーム別）</h3><div id="chart_week" class="chart-box"></div></div>
-      <div class="card"><h3>Google Chatメッセージ（週次）</h3><div id="chart_gchat_week" class="chart-box"></div></div>
-      <div class="card"><h3>Backlogタスク消化数（週次）</h3><div id="chart_backlog_week" class="chart-box"></div></div>
-      <div class="card"><h3>今週のチーム別活動量</h3><div id="chart_team_activity" class="chart-box"></div></div>
-    </div>
-  </div>
-
-  <!-- PAGE: 個人アクティビティ -->
-  <div id="page_member" class="page">
-    <div class="filter-row">
-      <select id="filterMember" onchange="renderMemberPage()"><option value="">全メンバー</option></select>
-      <select id="filterTeam" onchange="renderMemberPage()">
-        <option value="">全チーム</option>
-        <option value="A">Team A</option>
-        <option value="B">Team B</option>
-        <option value="C">Team C</option>
-      </select>
-    </div>
-    <div class="grid grid-2">
-      <div class="card"><h3>GitHub活動詳細（最新週）</h3><div id="chart_member" class="chart-box"></div></div>
-      <div class="card"><h3>コミット推移</h3><div id="chart_commit_trend" class="chart-box"></div></div>
-    </div>
-    <div class="card" style="margin-top:16px"><h3>メンバー別サマリー</h3><div id="memberTable"></div></div>
-  </div>
-
-  <!-- PAGE: 評価スコア -->
-  <div id="page_eval" class="page">
-    <div class="grid grid-2">
-      <div class="card"><h3>Before 評価（チーム平均）</h3><div id="chart_radar_before" class="chart-box"></div></div>
-      <div class="card"><h3>After 評価（チーム平均）</h3><div id="chart_radar_after" class="chart-box"></div></div>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <h3 id="evalTableTitle">Before→After 成長スコア</h3>
-      <div id="evalTable"></div>
-    </div>
-  </div>
-
-  <!-- PAGE: ゲーミフィケーション -->
-  <div id="page_gamification" class="page">
-    <div class="grid grid-2">
-      <div class="card"><h3>総合ポイントランキング</h3><div id="chart_rank" class="chart-box"></div></div>
-      <div class="card"><h3>連続活動週数</h3><div id="chart_streak" class="chart-box"></div></div>
-    </div>
-    <div class="card" style="margin-top:16px"><h3>ランキング詳細</h3><div id="rankTable"></div></div>
-  </div>
-
-  <!-- PAGE: 自己評価 -->
-  <div id="page_selfevals" class="page">
-    <div class="grid grid-2">
-      <div class="card">
-        <h2>評価フォーム</h2>
-        <p style="font-size:14px;color:#666;margin-bottom:16px">
-          施策の開始前・終了後にそれぞれ回答します。スキルの成長幅で評価されます。
+    <section class="app-hero">
+      <div>
+        <span class="hero-kicker">Internal Dashboard</span>
+        <h2 class="hero-heading">活動の見える化と、次の意思決定を同時に進める。</h2>
+        <p class="hero-copy">
+          GitHub、Google Chat、Backlog、評価データを横断し、チームの進捗と個人の成長を継続的に追えるようにしています。
         </p>
-        <div id="evalFormLink"></div>
+        <div class="hero-meta">
+          <div class="hero-meta-item">
+            <span class="hero-stat-label">Coverage</span>
+            <strong>GitHub / Chat / Backlog / Eval</strong>
+          </div>
+          <div class="hero-meta-item">
+            <span class="hero-stat-label">Audience</span>
+            <strong>Admin / Member / Viewer</strong>
+          </div>
+          <div class="hero-meta-item">
+            <span class="hero-stat-label">Mode</span>
+            <strong>Rotation Cohort Dashboard</strong>
+          </div>
+        </div>
       </div>
-      <div class="card">
-        <h2>評価軸の説明</h2>
-        <dl class="eval-axis">
-          <dt>軸1: 上流工程力</dt><dd>課題定義・要件定義・基本設計・データ設計</dd>
-          <dt>軸2: 実装・技術力</dt><dd>フロントエンド・バックエンド・インフラ</dd>
-          <dt>軸3: AI活用力</dt><dd>上流工程×AI / AI支援開発 / AI機能実装</dd>
-          <dt>軸4: チームコミュ力</dt><dd>質問・相談 / コードレビューFB / 情報共有</dd>
-        </dl>
-        <p style="font-size:12px;color:#999;margin-top:12px">
-          Lv0: ほぼ理解なし → Lv4: 他者へ説明・レビューできる
-        </p>
+      <div class="hero-side">
+        <div class="hero-side-card">
+          <span class="section-kicker">Program Focus</span>
+          <h2>AI-first な開発実践を、定量データと評価の両面から確認。</h2>
+          <p>個々の活動量だけではなく、チーム全体のコミュニケーション量や成長幅まで一貫して確認できます。</p>
+        </div>
+        <div class="hero-side-card">
+          <span class="section-kicker">Access Policy</span>
+          <h2>閲覧権限に応じて、表示する粒度を自動制御。</h2>
+          <p>閲覧者にはチーム集計、参加メンバーには個人データ、管理者には承認系機能まで開放します。</p>
+        </div>
       </div>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <h3>評価スコア一覧（本人評価）</h3>
-      <div id="myEvalTable"></div>
-    </div>
-    <div id="adminEvalSection" style="display:none">
-      <div class="card" style="margin-top:16px">
-        <h3>全メンバー評価一覧（管理者）</h3>
-        <div id="adminEvalTable"></div>
+    </section>
+
+    <nav id="main-nav"></nav>
+
+    <main class="page-shell">
+      <!-- PAGE: 施策概要 -->
+      <div id="page_overview" class="page active">
+        <div id="overview-content"></div>
       </div>
-    </div>
+
+      <!-- PAGE: 全体サマリー -->
+      <div id="page_summary" class="page">
+        <div id="viewer-notice" class="notice" style="display:none">
+          集計データはチーム単位で表示しています。個人データは参加メンバーのみ閲覧できます。
+        </div>
+        <div class="score-grid" id="scoreCards"></div>
+        <div class="grid grid-2">
+          <div class="card"><h3>週次コミット数（チーム別）</h3><div id="chart_week" class="chart-box"></div></div>
+          <div class="card"><h3>Google Chatメッセージ（週次）</h3><div id="chart_gchat_week" class="chart-box"></div></div>
+          <div class="card"><h3>Backlogタスク消化数（週次）</h3><div id="chart_backlog_week" class="chart-box"></div></div>
+          <div class="card"><h3>今週のチーム別活動量</h3><div id="chart_team_activity" class="chart-box"></div></div>
+        </div>
+      </div>
+
+      <!-- PAGE: 個人アクティビティ -->
+      <div id="page_member" class="page">
+        <div class="filter-row">
+          <select id="filterMember" onchange="renderMemberPage()"><option value="">全メンバー</option></select>
+          <select id="filterTeam" onchange="renderMemberPage()">
+            <option value="">全チーム</option>
+            <option value="A">Team A</option>
+            <option value="B">Team B</option>
+            <option value="C">Team C</option>
+          </select>
+        </div>
+        <div class="grid grid-2">
+          <div class="card"><h3>GitHub活動詳細（最新週）</h3><div id="chart_member" class="chart-box"></div></div>
+          <div class="card"><h3>コミット推移</h3><div id="chart_commit_trend" class="chart-box"></div></div>
+        </div>
+        <div class="card" style="margin-top:16px"><h3>メンバー別サマリー</h3><div id="memberTable"></div></div>
+      </div>
+
+      <!-- PAGE: 評価スコア -->
+      <div id="page_eval" class="page">
+        <div class="grid grid-2">
+          <div class="card"><h3>Before 評価（チーム平均）</h3><div id="chart_radar_before" class="chart-box"></div></div>
+          <div class="card"><h3>After 評価（チーム平均）</h3><div id="chart_radar_after" class="chart-box"></div></div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3 id="evalTableTitle">Before→After 成長スコア</h3>
+          <div id="evalTable"></div>
+        </div>
+      </div>
+
+      <!-- PAGE: ゲーミフィケーション -->
+      <div id="page_gamification" class="page">
+        <div class="grid grid-2">
+          <div class="card"><h3>総合ポイントランキング</h3><div id="chart_rank" class="chart-box"></div></div>
+          <div class="card"><h3>連続活動週数</h3><div id="chart_streak" class="chart-box"></div></div>
+        </div>
+        <div class="card" style="margin-top:16px"><h3>ランキング詳細</h3><div id="rankTable"></div></div>
+      </div>
+
+      <!-- PAGE: 自己評価 -->
+      <div id="page_selfevals" class="page">
+        <div class="grid grid-2">
+          <div class="card">
+            <span class="section-kicker">Evaluation Form</span>
+            <h2>評価フォーム</h2>
+            <p class="overview-copy">
+              施策の開始前・終了後にそれぞれ回答します。スキルの成長幅で評価されます。
+            </p>
+            <div id="evalFormLink"></div>
+          </div>
+          <div class="card">
+            <span class="section-kicker">Evaluation Axes</span>
+            <h2>評価軸の説明</h2>
+            <dl class="eval-axis">
+              <div><dt>軸1: 上流工程力</dt><dd>課題定義・要件定義・基本設計・データ設計</dd></div>
+              <div><dt>軸2: 実装・技術力</dt><dd>フロントエンド・バックエンド・インフラ</dd></div>
+              <div><dt>軸3: AI活用力</dt><dd>上流工程×AI / AI支援開発 / AI機能実装</dd></div>
+              <div><dt>軸4: チームコミュ力</dt><dd>質問・相談 / コードレビューFB / 情報共有</dd></div>
+            </dl>
+            <p class="site-caption" style="margin-top:14px">
+              Lv0: ほぼ理解なし → Lv4: 他者へ説明・レビューできる
+            </p>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>評価スコア一覧（本人評価）</h3>
+          <div id="myEvalTable"></div>
+        </div>
+        <div id="adminEvalSection" style="display:none">
+          <div class="card" style="margin-top:16px">
+            <h3>全メンバー評価一覧（管理者）</h3>
+            <div id="adminEvalTable"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div>
+        <strong>April Knights AI Native Initiative</strong>
+        <p>社内施策の活動データと成長評価を継続的に追うための内部ポータルです。</p>
+      </div>
+      <a href="https://april-knights.com/" target="_blank" rel="noopener noreferrer">Corporate Site</a>
+    </footer>
   </div>
 </div>
 

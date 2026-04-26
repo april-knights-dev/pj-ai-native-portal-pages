@@ -11,7 +11,7 @@
 'use strict';
 
 const TOKEN_KEY   = 'portal_token';
-const TEAM_COLOR  = { A: '#1a73e8', B: '#34a853', C: '#ea4335' };
+const TEAM_COLOR  = { A: '#6AB7F4', B: '#527EEC', C: '#A496FB' };
 
 let D = null; // ポータルデータ（fetchData後にセット）
 
@@ -65,12 +65,19 @@ function startAuthFlow() {
   document.getElementById('signin-screen').style.display = 'none';
   document.getElementById('loading-screen').style.display = 'flex';
   document.getElementById('loading-screen').innerHTML =
+    '<div class="loading-shell">' +
+    '<div class="loading-panel">' +
     '<div class="spinner"></div>' +
-    '<p style="font-size:14px;color:#666">Google 認証中...<br>' +
-    '<span style="font-size:12px">認証完了後、このページが自動更新されます</span></p>' +
-    '<button onclick="cancelAuth()" style="margin-top:16px;padding:6px 16px;' +
-    'border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer;font-size:13px">' +
-    'キャンセル</button>';
+    '<div>' +
+    '<span class="brand-kicker">Authorizing</span>' +
+    '<h1>Google 認証中...</h1>' +
+    '<p class="loading-copy">認証完了後、このページが自動更新されます。</p>' +
+    '</div>' +
+    '<div class="loading-actions">' +
+    '<button class="cancel-btn" onclick="cancelAuth()">キャンセル</button>' +
+    '</div>' +
+    '</div>' +
+    '</div>';
 
   let elapsed = 0;
   _pollTimer = setInterval(() => {
@@ -84,7 +91,16 @@ function startAuthFlow() {
           if (popup && !popup.closed) popup.close();
           localStorage.setItem(TOKEN_KEY, data.token);
           document.getElementById('loading-screen').innerHTML =
-            '<div class="spinner"></div><p style="font-size:14px;color:#666">データ読み込み中...</p>';
+            '<div class="loading-shell">' +
+            '<div class="loading-panel">' +
+            '<div class="spinner"></div>' +
+            '<div>' +
+            '<span class="brand-kicker">Loading Portal</span>' +
+            '<h1>データを読み込み中...</h1>' +
+            '<p class="loading-copy">認証結果を反映して最新データを取得しています。</p>' +
+            '</div>' +
+            '</div>' +
+            '</div>';
           fetchData(data.token);
         }
       })
@@ -133,8 +149,12 @@ function fetchData(token) {
     .catch(err => {
       console.error('データ取得エラー:', err);
       document.getElementById('loading-screen').innerHTML =
+        '<div class="loading-shell">' +
+        '<div class="loading-panel">' +
         '<div class="error-msg">データの読み込みに失敗しました。<br>' +
-        '<button class="btn btn-primary" style="margin-top:16px" onclick="signOut()">再サインイン</button></div>';
+        '<button class="btn btn-primary" style="margin-top:16px" onclick="signOut()">再サインイン</button></div>' +
+        '</div>' +
+        '</div>';
     });
 }
 
@@ -173,7 +193,7 @@ function renderApp() {
       `<a class="btn btn-primary" href="${D.evalFormUrl}" target="_blank">評価フォームを開く</a>`;
   } else {
     document.getElementById('evalFormLink').innerHTML =
-      '<p style="color:#999;font-size:13px">フォームURLは管理者が設定中です。</p>';
+      '<p class="subtle-text">フォームURLは管理者が設定中です。</p>';
   }
 
   // 評価テーブルタイトル（admin は承認ボタンあり）
@@ -201,6 +221,7 @@ function showPage(name, btn) {
 
 function renderOverviewPage() {
   const cohort = D.cohort;
+  const memberCount = cohort.teams.reduce((sum, team) => sum + team.members.length, 0);
 
   const phasesHtml = cohort.phases.map(p => `
     <div class="timeline-item">
@@ -211,49 +232,56 @@ function renderOverviewPage() {
 
   const teamsHtml = cohort.teams.map(t => `
     <div class="team-card team-${t.id.toLowerCase()}">
-      <h4><span class="badge badge-${t.id.toLowerCase()}">Team ${t.id}</span>　${t.theme}</h4>
-      <div class="members">メンバー: ${t.members.join('・')}（リーダー: ${t.leader}）　｜　PO: ${t.po.join('・')}</div>
+      <div class="team-card-head">
+        <span class="badge badge-${t.id.toLowerCase()}">Team ${t.id}</span>
+        <h4>${t.theme}</h4>
+      </div>
+      <div class="members">メンバー: ${t.members.join('・')} / リーダー: ${t.leader}</div>
+      <div class="team-po">PO: ${t.po.join('・')}</div>
     </div>`).join('');
 
   document.getElementById('overview-content').innerHTML = `
   <div class="grid grid-2">
     <div class="card">
+      <span class="section-kicker">Program Overview</span>
       <h2>施策について</h2>
-      <p style="font-size:14px;line-height:1.8;color:#555;margin-bottom:16px">
+      <p class="overview-copy">
         AIネイティブ開発プロジェクトは、AI-first な開発手法を実践しながら
         上流工程力・実装技術力・AI活用力・チームコミュニケーション力を総合的に鍛えます。<br>
         参加メンバーは期ごとにローテーションし、社内の AI ネイティブ人材を継続的に育成します。
       </p>
-      <table>
-        <tr><th style="width:100px">期</th><td>${cohort.name}（${cohort.id}）</td></tr>
-        <tr><th>期間</th><td>${cohort.period}</td></tr>
-        <tr><th>週次作業会</th><td>${cohort.weeklySession}</td></tr>
-        <tr><th>チーム数</th><td>${cohort.teams.length}チーム</td></tr>
-        <tr><th>参加人数</th><td>${cohort.teams.reduce((s,t)=>s+t.members.length,0)}名</td></tr>
-      </table>
+      <div class="overview-facts">
+        <div class="overview-fact"><span>Cohort</span><strong>${cohort.name} / ${cohort.id}</strong></div>
+        <div class="overview-fact"><span>Period</span><strong>${cohort.period}</strong></div>
+        <div class="overview-fact"><span>Weekly Session</span><strong>${cohort.weeklySession}</strong></div>
+        <div class="overview-fact"><span>Team Setup</span><strong>${cohort.teams.length}チーム / ${memberCount}名</strong></div>
+      </div>
     </div>
     <div class="card">
+      <span class="section-kicker">Timeline</span>
       <h2>フェーズ・タイムライン</h2>
       <div class="timeline">${phasesHtml}</div>
     </div>
   </div>
   <div class="card" style="margin-top:16px">
+    <span class="section-kicker">Teams</span>
     <h2>チーム構成（${cohort.name}）</h2>
-    ${teamsHtml}
+    <div class="teams-grid">${teamsHtml}</div>
   </div>
   <div class="card" style="margin-top:16px">
+    <span class="section-kicker">Evaluation Policy</span>
     <h2>評価について</h2>
-    <p style="font-size:14px;color:#555;margin-bottom:16px">
+    <p class="overview-copy">
       評価はスキルの <strong>成長幅（After − Before）</strong> で行います。スタート地点は問いません。<br>
       施策責任者・チームリーダー・本人の 3 者評価で最終スコアを算出します。
     </p>
     <table>
-      <tr><th style="width:160px">タイミング</th><th>内容</th></tr>
+      <tr><th>タイミング</th><th>内容</th></tr>
       <tr><td>Before（4月初旬）</td><td>キックオフ時の自己評価</td></tr>
       <tr><td>Mid-check（4月末）</td><td>Phase 1 完了後の中間確認</td></tr>
       <tr><td>After（6月末）</td><td>3者評価による最終スコア</td></tr>
     </table>
-    <p style="font-size:12px;color:#999;margin-top:12px">
+    <p class="overview-note">
       最終スコア = (本人 + チームリーダー + 施策責任者) ÷ 3　｜　成長スコア = After − Before
     </p>
   </div>`;
@@ -276,7 +304,7 @@ function renderSummaryPage() {
     scoreCard(wGC.reduce((s,r)=>s+(r.messages_sent||0),0), '今週のChatメッセージ') +
     scoreCard(wBL.reduce((s,r)=>s+(r.tasks_completed||0),0), '今週の完了タスク');
 
-  document.getElementById('updated-at').textContent = week ? '最終収集: ' + week : '';
+  document.getElementById('updated-at').textContent = week || '未取得';
 
   renderWeeklyChart(src,      'commits',         'chart_week');
   renderWeeklyChart(D.gchat,  'messages_sent',   'chart_gchat_week');
@@ -307,8 +335,11 @@ function renderWeeklyChart(data, metric, elId) {
   if (rows.length < 2) return;
   const dt = google.visualization.arrayToDataTable(rows);
   new google.visualization.ColumnChart(document.getElementById(elId)).draw(dt, {
-    colors: ['#1a73e8','#34a853','#ea4335'], legend: { position:'top' },
-    isStacked: true, chartArea: { left:40, right:10, top:30, bottom:40 },
+    colors: [TEAM_COLOR.A, TEAM_COLOR.B, TEAM_COLOR.C],
+    legend: { position:'top' },
+    backgroundColor: 'transparent',
+    isStacked: true,
+    chartArea: { left:40, right:10, top:30, bottom:40 },
   });
 }
 
@@ -327,8 +358,10 @@ function renderTeamActivityChart() {
   if (rows.length < 2) return;
   new google.visualization.BarChart(document.getElementById('chart_team_activity'))
     .draw(google.visualization.arrayToDataTable(rows), {
-      isStacked: true, legend: { position:'top' },
-      colors: ['#1a73e8','#4285f4','#34a853','#ea4335'],
+      isStacked: true,
+      legend: { position:'top' },
+      backgroundColor: 'transparent',
+      colors: [TEAM_COLOR.B, TEAM_COLOR.A, TEAM_COLOR.C, '#8991A9'],
       chartArea: { left:60, right:10, top:30, bottom:20 },
     });
 }
@@ -355,7 +388,9 @@ function renderMemberPage() {
   if (chartRows.length > 1) {
     new google.visualization.BarChart(document.getElementById('chart_member'))
       .draw(google.visualization.arrayToDataTable(chartRows), {
-        isStacked: true, legend: { position:'top' },
+        isStacked: true,
+        legend: { position:'top' },
+        backgroundColor: 'transparent',
         chartArea: { left:60, right:10, top:30, bottom:20 },
       });
   }
@@ -375,7 +410,9 @@ function renderMemberPage() {
   if (trendRows.length > 1) {
     new google.visualization.LineChart(document.getElementById('chart_commit_trend'))
       .draw(google.visualization.arrayToDataTable(trendRows), {
-        legend: { position:'top' }, chartArea: { left:40, right:10, top:30, bottom:40 },
+        legend: { position:'top' },
+        backgroundColor: 'transparent',
+        chartArea: { left:40, right:10, top:30, bottom:40 },
       });
   }
 
@@ -415,7 +452,9 @@ function renderEvalPage() {
     });
     const id = timing === 'before' ? 'chart_radar_before' : 'chart_radar_after';
     new google.visualization.LineChart(document.getElementById(id)).draw(dt, {
-      colors: ['#1a73e8','#34a853','#ea4335'], legend: { position:'top' },
+      colors: [TEAM_COLOR.A, TEAM_COLOR.B, TEAM_COLOR.C],
+      legend: { position:'top' },
+      backgroundColor: 'transparent',
       chartArea: { left:60, right:10, top:30, bottom:40 },
     });
   });
@@ -438,7 +477,7 @@ function renderEvalPage() {
       const b = avg(before), a = avg(after);
       const diff  = (b!=='-'&&a!=='-') ? (parseFloat(a)-parseFloat(b)).toFixed(2) : '-';
       const team  = before[0]?.team || '';
-      const color = diff>0 ? 'color:#34a853;font-weight:600' : diff<0 ? 'color:#ea4335' : '';
+      const color = diff>0 ? 'color:#527EEC;font-weight:700' : diff<0 ? 'color:#D34B4B' : '';
       const approved = before[0]?.admin_approved;
       html += `<tr><td>${m}</td><td><span class="badge badge-${team.toLowerCase()}">${team}</span></td>`;
       html += `<td>${etype}</td><td>${b}</td><td>${a}</td>`;
@@ -489,12 +528,14 @@ function renderGamificationPage() {
 
   const rows = [['メンバー','ポイント',{role:'style'}]];
   points.forEach((p,i) => {
-    const color = i===0 ? '#f4b400' : i===1 ? '#9e9e9e' : i===2 ? '#cd7f32' : TEAM_COLOR[p.team]||'#1a73e8';
+    const color = i===0 ? '#f4b400' : i===1 ? '#8991A9' : i===2 ? '#b88652' : TEAM_COLOR[p.team]||TEAM_COLOR.B;
     rows.push([p.name+'（'+p.pt+'pt）', p.pt, 'color:'+color]);
   });
   new google.visualization.BarChart(document.getElementById('chart_rank'))
     .draw(google.visualization.arrayToDataTable(rows), {
-      legend: 'none', chartArea: { left:120, right:10, top:10, bottom:20 },
+      legend: 'none',
+      backgroundColor: 'transparent',
+      chartArea: { left:120, right:10, top:10, bottom:20 },
     });
 
   const weeks = [...new Set(D.github.map(r=>r.week_start))].sort();
@@ -510,7 +551,10 @@ function renderGamificationPage() {
   });
   new google.visualization.BarChart(document.getElementById('chart_streak'))
     .draw(google.visualization.arrayToDataTable(streakRows), {
-      colors: ['#fbbc04'], legend: 'none', chartArea: { left:60, right:10, top:10, bottom:20 },
+      colors: [TEAM_COLOR.B],
+      legend: 'none',
+      backgroundColor: 'transparent',
+      chartArea: { left:60, right:10, top:10, bottom:20 },
     });
 
   let html = '<table><tr><th>順位</th><th>メンバー</th><th>チーム</th><th>総合PT</th>' +
@@ -535,7 +579,7 @@ function renderSelfEvalPage() {
     html += `<tr><td>${r.evaluatee}</td><td>${r.timing}</td><td>${r.axis1_avg||'-'}</td>` +
       `<td>${r.axis2_avg||'-'}</td><td>${r.axis3_avg||'-'}</td><td>${r.axis4_avg||'-'}</td></tr>`;
   });
-  if (!selfEval.length) html += '<tr><td colspan="6" style="color:#999;text-align:center">評価データがまだありません</td></tr>';
+  if (!selfEval.length) html += '<tr><td colspan="6" style="color:#8991A9;text-align:center">評価データがまだありません</td></tr>';
   html += '</table>';
   document.getElementById('myEvalTable').innerHTML = html;
 
@@ -551,7 +595,7 @@ function renderSelfEvalPage() {
         `<td><button class="approved-btn${approved?' done':''}" ` +
         `onclick="approveEval('${r.evaluatee}','${r.timing}')"${approved?' disabled':''}>${approved?'済':'承認'}</button></td></tr>`;
     });
-    if (!D.eval.length) ahtml += '<tr><td colspan="9" style="color:#999;text-align:center">評価データがまだありません</td></tr>';
+    if (!D.eval.length) ahtml += '<tr><td colspan="9" style="color:#8991A9;text-align:center">評価データがまだありません</td></tr>';
     ahtml += '</table>';
     document.getElementById('adminEvalTable').innerHTML = ahtml;
   }
