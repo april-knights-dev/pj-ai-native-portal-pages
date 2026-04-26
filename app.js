@@ -14,6 +14,7 @@ const TOKEN_KEY   = 'portal_token';
 const TEAM_COLOR  = { A: '#6AB7F4', B: '#527EEC', C: '#A496FB' };
 
 let D = null; // ポータルデータ（fetchData後にセット）
+let PUBLIC_META = null;
 
 // ─── 初期化 ─────────────────────────────────────────────────────
 
@@ -23,6 +24,8 @@ google.charts.setOnLoadCallback(init);
 let _pollTimer = null;
 
 function init() {
+  fetchPublicMeta();
+
   const urlToken = consumeTokenFromUrl();
   if (urlToken) {
     localStorage.setItem(TOKEN_KEY, urlToken);
@@ -45,6 +48,17 @@ function consumeTokenFromUrl() {
   url.searchParams.delete('token');
   window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
   return token;
+}
+
+function fetchPublicMeta() {
+  fetch(GAS_API_URL + '?action=public_meta')
+    .then(r => r.json())
+    .then(data => {
+      if (!data || !data.cohort) return;
+      PUBLIC_META = data;
+      applyLandingMeta(data.cohort);
+    })
+    .catch(() => {});
 }
 
 // ─── サインイン / アウト ──────────────────────────────────────
@@ -182,6 +196,7 @@ function fetchData(token) {
         return;
       }
       D = data;
+      applyLandingMeta(D.cohort);
       renderApp();
       showApp();
     })
@@ -201,6 +216,7 @@ function fetchData(token) {
 
 function renderApp() {
   const role = D.role;
+  applyLandingMeta(D.cohort);
 
   // ロールバッジ
   const badgeEl = document.getElementById('role-badge');
@@ -243,6 +259,64 @@ function renderApp() {
 
   renderOverviewPage();
   renderSummaryPage();
+}
+
+function applyLandingMeta(cohort) {
+  if (!cohort) return;
+
+  const teams = Array.isArray(cohort.teams) ? cohort.teams : [];
+  const phases = Array.isArray(cohort.phases) ? cohort.phases : [];
+  const memberCount = typeof cohort.memberCount === 'number'
+    ? cohort.memberCount
+    : teams.reduce((sum, team) => sum + ((team.members && team.members.length) || 0), 0);
+  const teamCount = typeof cohort.teamCount === 'number' ? cohort.teamCount : teams.length;
+  const themeText = teams.map(team => team.theme).filter(Boolean).join(' / ');
+
+  setText('cohort-chip', `${cohort.name || 'Cohort'} ${cohort.period || ''}`.trim());
+  setText('session-chip', cohort.weeklySession || 'Weekly Session');
+  setText('team-chip', `${teamCount} Teams / ${memberCount} Members`);
+  setText('themes-text', themeText || 'テーマ情報は管理者が設定します');
+
+  const phaseList = document.getElementById('signin-phase-list');
+  if (phaseList) {
+    phaseList.innerHTML = phases.map(phase => `
+      <div class="timeline-step">
+        <div class="timeline-copy">
+          <strong>${escapeHtml(phase.name || '')}</strong>
+          <span>${escapeHtml(phase.period || '')}</span>
+        </div>
+        <div class="timeline-track"><span class="timeline-fill"></span></div>
+        <span class="metric-trend">${escapeHtml(phase.desc || '')}</span>
+      </div>
+    `).join('');
+  }
+
+  const teamList = document.getElementById('signin-team-list');
+  if (teamList) {
+    teamList.innerHTML = teams.map(team => `
+      <div class="preview-feed-item">
+        <span class="preview-dot team-${String(team.id || '').toLowerCase()}"></span>
+        <div>
+          <strong>Team ${escapeHtml(team.id || '')}</strong>
+          <span>${escapeHtml(team.theme || '')}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function showPage(name, btn) {

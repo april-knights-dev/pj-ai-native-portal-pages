@@ -9,7 +9,7 @@
 <title>AIネイティブ開発施策 ポータル</title>
 <link rel="icon" href="https://ak-galahad.backlog.com/ProjectIcon.action?iconId=756202&t=20260326165015">
 <link rel="apple-touch-icon" href="https://ak-galahad.backlog.com/ProjectIcon.action?iconId=756202&t=20260326165015">
-<link rel="stylesheet" href="style.css?v=20260426-7">
+<link rel="stylesheet" href="style.css?v=20260426-8">
 </head>
 <body class="portal-body">
 
@@ -18,7 +18,7 @@
   <div class="auth-shell">
     <section class="auth-panel">
       <div class="brand-row auth-brand-row">
-        <img class="brand-lockup" src="ak-logo-horizontal.svg?v=20260426-7" alt="APRIL KNIGHTS">
+        <img class="brand-lockup" src="ak-logo-horizontal.svg?v=20260426-8" alt="APRIL KNIGHTS">
         <span class="portal-chip">Internal Program Portal</span>
       </div>
       <span class="section-kicker">AI Native Development Project</span>
@@ -29,18 +29,18 @@
         このポータルでは、プロジェクトのテーマ、週次活動、評価推移、成長の兆しをひとつの画面で確認できます。
       </p>
       <div class="program-chip-row">
-        <span class="program-chip">第1回 2026年4月〜6月</span>
-        <span class="program-chip">毎週水曜 21:00〜22:30</span>
-        <span class="program-chip">3 Teams / 9 Members</span>
+        <span class="program-chip" id="cohort-chip">Cohort / Loading...</span>
+        <span class="program-chip" id="session-chip">Weekly Session / Loading...</span>
+        <span class="program-chip" id="team-chip">Teams / Loading...</span>
       </div>
       <div class="program-stats">
         <div class="program-stat">
           <span class="program-stat-label">Program Themes</span>
-          <strong>SES管理 / 内部タスク管理 / AIスキル可視化</strong>
+          <strong id="themes-text">テーマ情報を取得中...</strong>
         </div>
         <div class="program-stat">
           <span class="program-stat-label">Connected Data</span>
-          <strong>GitHub・Google Chat・Backlog・評価データ</strong>
+          <strong>GitHub / Google Chat / Backlog / Internal Evaluation</strong>
         </div>
         <div class="program-stat">
           <span class="program-stat-label">Portal Coverage</span>
@@ -61,27 +61,18 @@
         </a>
         <span class="signin-note">Workspace 認証後、ポータルに自動で戻ります。ポップアップ不可環境では同一タブで認証します。</span>
       </div>
-      <div class="auth-trust-row">
-        <span class="subtle-label">Connected Services</span>
-        <div class="service-pill-row">
-          <span class="service-pill">GitHub</span>
-          <span class="service-pill">Google Chat</span>
-          <span class="service-pill">Backlog</span>
-          <span class="service-pill">Evaluation</span>
-        </div>
-      </div>
     </section>
     <aside class="auth-aside">
       <div class="preview-stage">
         <div class="preview-topbar">
-          <span class="section-kicker">Portal Preview</span>
-          <span class="preview-badge">Members Only</span>
+          <span class="section-kicker">Portal Scope</span>
+          <span class="preview-badge">After Sign-in</span>
         </div>
         <div class="preview-screen">
           <div class="preview-spotlight">
             <div>
-              <span class="preview-label">Program Pulse</span>
-              <h2>施策全体の進捗と成長を、1画面で把握。</h2>
+              <span class="preview-label">What You Can Track</span>
+              <h2>サインイン後に見られる情報を、役割ごとに整理。</h2>
             </div>
             <div class="preview-spark" aria-hidden="true">
               <span></span>
@@ -92,67 +83,23 @@
           </div>
           <div class="preview-metric-grid">
             <div class="preview-metric-card">
-              <span class="program-stat-label">Weekly Activity</span>
-              <strong>87</strong>
-              <span class="metric-trend">+12 this week</span>
+              <span class="program-stat-label">Surface</span>
+              <strong>Weekly Activity</strong>
+              <span class="metric-trend">週次の動きと活動量をチーム別に確認</span>
             </div>
             <div class="preview-metric-card">
-              <span class="program-stat-label">Growth Delta</span>
-              <strong>+18%</strong>
-              <span class="metric-trend">Before / After</span>
+              <span class="program-stat-label">Surface</span>
+              <strong>Growth Tracking</strong>
+              <span class="metric-trend">Before / After の推移と成長幅を可視化</span>
             </div>
             <div class="preview-metric-card">
-              <span class="program-stat-label">Reactions</span>
-              <strong>142</strong>
-              <span class="metric-trend">Cross-team momentum</span>
+              <span class="program-stat-label">Surface</span>
+              <strong>Activity Logs</strong>
+              <span class="metric-trend">GitHub・Chat・Backlog の流れを横断把握</span>
             </div>
           </div>
-          <div class="preview-timeline">
-            <div class="timeline-step">
-              <div class="timeline-copy">
-                <strong>Phase 1</strong>
-                <span>PoC / 要件分析</span>
-              </div>
-              <div class="timeline-track"><span class="timeline-fill phase-a"></span></div>
-            </div>
-            <div class="timeline-step">
-              <div class="timeline-copy">
-                <strong>Phase 2</strong>
-                <span>実装 / AI統合</span>
-              </div>
-              <div class="timeline-track"><span class="timeline-fill phase-b"></span></div>
-            </div>
-            <div class="timeline-step">
-              <div class="timeline-copy">
-                <strong>Phase 3</strong>
-                <span>テスト / 発表</span>
-              </div>
-              <div class="timeline-track"><span class="timeline-fill phase-c"></span></div>
-            </div>
-          </div>
-          <div class="preview-feed">
-            <div class="preview-feed-item">
-              <span class="preview-dot team-a"></span>
-              <div>
-                <strong>Team A</strong>
-                <span>SES人材管理システムの進行状況を更新</span>
-              </div>
-            </div>
-            <div class="preview-feed-item">
-              <span class="preview-dot team-b"></span>
-              <div>
-                <strong>Team B</strong>
-                <span>Backlog 完了タスクとChat活動量を同期</span>
-              </div>
-            </div>
-            <div class="preview-feed-item">
-              <span class="preview-dot team-c"></span>
-              <div>
-                <strong>Team C</strong>
-                <span>評価推移と成果ログを可視化</span>
-              </div>
-            </div>
-          </div>
+          <div class="preview-timeline" id="signin-phase-list"></div>
+          <div class="preview-feed" id="signin-team-list"></div>
         </div>
       </div>
       <div class="auth-bento">
