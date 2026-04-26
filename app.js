@@ -46,9 +46,28 @@ function showSignIn() {
   document.getElementById('app').style.display = 'none';
 
   const btn = document.getElementById('signin-btn');
-  const redirectTo = encodeURIComponent(location.origin + location.pathname);
-  btn.href = GAS_AUTH_URL + '?action=auth&redirect_to=' + redirectTo;
+  btn.href = '#';
+  btn.onclick = (ev) => {
+    ev.preventDefault();
+    const authUrl = GAS_AUTH_URL + '?action=auth';
+    const popup = window.open(authUrl, 'gas-auth', 'width=520,height=640,popup=yes');
+    if (!popup) {
+      // ポップアップブロック時はフォールバックとしてリダイレクト
+      window.location.href = authUrl + '&redirect_to=' + encodeURIComponent(location.origin + location.pathname);
+    }
+  };
 }
+
+// GAS ポップアップからトークンを受け取る
+window.addEventListener('message', (e) => {
+  if (!e.origin.endsWith('.google.com') && !e.origin.endsWith('.googleusercontent.com')) return;
+  if (e.data && e.data.portal_token) {
+    const token = e.data.portal_token;
+    localStorage.setItem(TOKEN_KEY, token);
+    showLoading();
+    fetchData(token);
+  }
+});
 
 function showLoading() {
   document.getElementById('signin-screen').style.display = 'none';
