@@ -124,19 +124,22 @@ def parse_session(session_file):
         if rtype == 'user':
             turns += 1
             content = msg.get('content', [])
-            if isinstance(content, list):
-                for block in content:
-                    if not isinstance(block, dict):
+            # content が文字列の場合（スラッシュコマンド入力時）も処理
+            if isinstance(content, str):
+                content_texts = [content]
+            elif isinstance(content, list):
+                content_texts = [b.get('text', '') for b in content if isinstance(b, dict)]
+            else:
+                content_texts = []
+            for text in content_texts:
+                for cmd in re.findall(r'<command-message>(.*?)</command-message>', text):
+                    cmd = cmd.strip()
+                    if not cmd or cmd in BUILTIN_COMMANDS:
                         continue
-                    text = block.get('text', '')
-                    for cmd in re.findall(r'<command-message>(.*?)</command-message>', text):
-                        cmd = cmd.strip()
-                        if not cmd or cmd in BUILTIN_COMMANDS:
-                            continue
-                        key = (cmd, ts[:16])
-                        if key not in seen_skill_keys:
-                            seen_skill_keys.add(key)
-                            skill_events.append({'skill_name': cmd, 'timestamp': ts})
+                    key = (cmd, ts[:16])
+                    if key not in seen_skill_keys:
+                        seen_skill_keys.add(key)
+                        skill_events.append({'skill_name': cmd, 'timestamp': ts})
 
         elif rtype == 'assistant':
             msg_id = msg.get('id', '')
@@ -163,7 +166,14 @@ def parse_session(session_file):
                     continue
                 name = block.get('name', '')
                 inp = block.get('input') or {}
-                if name == 'Agent':
+                if name == 'Skill':
+                    skill_name = inp.get('skill', '').strip()
+                    if skill_name and skill_name not in BUILTIN_COMMANDS:
+                        key = (skill_name, ts[:16])
+                        if key not in seen_skill_keys:
+                            seen_skill_keys.add(key)
+                            skill_events.append({'skill_name': skill_name, 'timestamp': ts})
+                elif name == 'Agent':
                     subtype = inp.get('subagent_type', 'unknown')
                     subagent_events.append({'subagent_type': subtype, 'timestamp': ts})
                 elif name.startswith('mcp__'):
