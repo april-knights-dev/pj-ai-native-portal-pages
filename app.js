@@ -1621,8 +1621,9 @@ function calcClaudeCost_(rows) {
 
 function renderClaudePage() {
   const weekly    = (D.claude && D.claude.weekly)    || [];
-  const skills    = (D.claude && D.claude.skills)    || [];
-  const subagents = (D.claude && D.claude.subagents) || [];
+  const skills       = (D.claude && D.claude.skills)       || [];
+  const subagents    = (D.claude && D.claude.subagents)    || [];
+  const recentEvents = (D.claude && D.claude.recentEvents) || [];
 
   // ─── KPI カード ─────────────────────────────────────────────
   const totalSessions = weekly.reduce((s, r) => s + (r.sessions || 0), 0);
@@ -1723,6 +1724,36 @@ function renderClaudePage() {
         colors: [TEAM_COLOR.C],
       }
     );
+  })();
+
+  // ─── スキル・サブエージェント 利用目的一覧 ────────────────────
+  (function() {
+    const target = document.getElementById('claude_usage_log');
+    if (!target) return;
+    const rows = recentEvents.filter(e => e.desc);
+    if (rows.length === 0) { target.innerHTML = '<p style="color:var(--text-soft);font-size:13px">利用目的の記録がまだありません。</p>'; return; }
+    const userMap = {};
+    (D.members || []).forEach(m => { userMap[String(m.email || '').toLowerCase()] = m.name; });
+    const badge = t => t === 'skill'
+      ? '<span style="background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:600">スキル</span>'
+      : '<span style="background:#ede9fe;color:#6d28d9;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:600">サブエージェント</span>';
+    const fmtDate = ts => { try { return new Date(ts).toLocaleString('ja-JP', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}); } catch { return ts; } };
+    target.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="text-align:left;padding:6px 8px;color:var(--text-soft);font-weight:500">種別</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--text-soft);font-weight:500">名前</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--text-soft);font-weight:500">目的・説明</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--text-soft);font-weight:500">メンバー</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--text-soft);font-weight:500">日時</th>
+      </tr></thead>
+      <tbody>${rows.map(e => `<tr style="border-bottom:1px solid var(--border-light)">
+        <td style="padding:6px 8px">${badge(e.type)}</td>
+        <td style="padding:6px 8px;font-family:monospace;font-size:12px">${e.name}</td>
+        <td style="padding:6px 8px;color:var(--text-main)">${e.desc}</td>
+        <td style="padding:6px 8px;color:var(--text-soft)">${userMap[e.email] || e.email}</td>
+        <td style="padding:6px 8px;color:var(--text-soft);white-space:nowrap">${fmtDate(e.ts)}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
   })();
 
   // ─── メンバー別サマリーテーブル ───────────────────────────────

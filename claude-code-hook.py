@@ -178,10 +178,18 @@ def parse_session(session_file):
                         key = (skill_name, ts[:16])
                         if key not in seen_skill_keys:
                             seen_skill_keys.add(key)
-                            skill_events.append({'skill_name': skill_name, 'timestamp': ts})
+                            skill_events.append({
+                                'skill_name': skill_name,
+                                'args': str(inp.get('args', '') or ''),
+                                'timestamp': ts,
+                            })
                 elif name == 'Agent':
                     subtype = inp.get('subagent_type', 'unknown')
-                    subagent_events.append({'subagent_type': subtype, 'timestamp': ts})
+                    subagent_events.append({
+                        'subagent_type': subtype,
+                        'description': str(inp.get('description', '') or ''),
+                        'timestamp': ts,
+                    })
                 elif name.startswith('mcp__'):
                     parts = name.split('__', 2)
                     server = parts[1] if len(parts) > 1 else name
