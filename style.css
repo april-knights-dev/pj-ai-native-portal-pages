@@ -2184,3 +2184,176 @@ code {
     min-width: 560px;
   }
 }
+
+/* ─── 施策について（viewer向け教育コンテンツ） ─────────────────────── */
+
+.about-section {
+  margin-bottom: 24px;
+}
+
+.about-reason-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.about-reason-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.about-reason-num {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--primary);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.about-reason-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0;
+}
+
+.about-reason-card p {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-soft);
+}
+
+.about-declaration-card {
+  background:
+    linear-gradient(145deg, rgba(82, 126, 236, 0.1), rgba(164, 150, 251, 0.12)),
+    var(--surface);
+}
+
+.about-declaration-card h2 {
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+.about-declaration-list {
+  display: grid;
+  gap: 16px;
+}
+
+.about-declaration-item {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 16px 20px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--line);
+}
+
+.about-declaration-mark {
+  font-size: 16px;
+  color: var(--primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.about-declaration-item strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.about-declaration-item p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-soft);
+  margin: 0;
+}
+
+.about-message-card h2 {
+  margin-top: 10px;
+  margin-bottom: 16px;
+}
+
+.about-action-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 20px;
+}
+
+.about-action-card {
+  padding: 18px 20px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+
+.about-action-card strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.about-action-list {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.about-action-list li {
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--text-soft);
+}
+
+.about-next-card {
+  background:
+    linear-gradient(135deg, rgba(82, 126, 236, 0.12), rgba(164, 150, 251, 0.14)),
+    var(--surface);
+}
+
+.about-next-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.about-next-inner h2 {
+  margin-top: 10px;
+}
+
+.about-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 22px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.about-cta-btn:hover {
+  opacity: 0.85;
+}
+
+@media (max-width: 900px) {
+  .about-reason-grid,
+  .about-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-next-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -229,6 +229,7 @@ function renderApp() {
 
   // ナビゲーション構築
   const pages = [
+    { id: 'about',        label: '施策について',         roles: ['viewer'],                    enabled: true },
     { id: 'overview',     label: '施策概要',             roles: ['admin', 'member', 'viewer'], enabled: CAPS.canViewOverview },
     { id: 'summary',      label: '全体サマリー',         roles: ['admin', 'member', 'viewer'], enabled: CAPS.canViewSummary },
     { id: 'artifacts',    label: '成果物',               roles: ['admin', 'member', 'viewer'], enabled: CAPS.canViewArtifacts },
@@ -601,6 +602,7 @@ function showPage(name, btn) {
   const activeBtn = btn || document.querySelector(`#main-nav button[data-page="${name}"]`);
   if (activeBtn) activeBtn.classList.add('active');
 
+  if (name === 'about')        renderAboutPage();
   if (name === 'overview')     renderOverviewPage();
   if (name === 'summary')      requestAnimationFrame(() => renderSummaryPage());
   if (name === 'artifacts')    renderArtifactsPage();
@@ -1845,4 +1847,195 @@ function renderSelfEvalPage() {
     ahtml += '</table>';
     document.getElementById('adminEvalTable').innerHTML = ahtml;
   }
+}
+
+// ─── 施策について（viewer向け教育コンテンツ） ────────────────────────
+
+function renderAboutPage() {
+  const el = document.getElementById('about-content');
+  if (!el) return;
+
+  const claudeAgg = (D && D.claude_agg) || {};
+  const totalSessions = claudeAgg.totalSessions || 0;
+  const totalTokens   = claudeAgg.totalTokens || 0;
+
+  const ghTeam = (D && Array.isArray(D.gh_team)) ? D.gh_team : [];
+  const totalCommits = ghTeam.reduce((sum, r) => sum + (Number(r.commits) || 0), 0);
+
+  const fmtNum = (n) => {
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000)    return (n / 1000).toFixed(1) + 'K';
+    return String(n);
+  };
+
+  const statsHtml = `
+    <div class="score-grid">
+      <div class="score-card">
+        <div class="val">${totalCommits > 0 ? fmtNum(totalCommits) : '-'}</div>
+        <div class="lbl">総コミット数</div>
+        <div class="meta">GitHub</div>
+      </div>
+      <div class="score-card">
+        <div class="val">${totalSessions > 0 ? fmtNum(totalSessions) : '-'}</div>
+        <div class="lbl">AI活用セッション数</div>
+        <div class="meta">Claude Code</div>
+      </div>
+      <div class="score-card">
+        <div class="val">${totalTokens > 0 ? fmtNum(totalTokens) : '-'}</div>
+        <div class="lbl">総トークン消費量</div>
+        <div class="meta">入出力合計</div>
+      </div>
+    </div>`;
+
+  const publishedArtifacts = collectArtifacts().filter(a => {
+    const v = String(a.visibility || '').toLowerCase();
+    return v !== 'private' && v !== 'admin' && v !== 'participant';
+  });
+
+  const artifactsHtml = publishedArtifacts.length > 0 ? `
+    <div class="about-section">
+      <div class="summary-banner">
+        <div>
+          <span class="section-kicker">Published Deliverables</span>
+          <h2>公開成果物</h2>
+          <p>参加チームが作成・公開した成果物です。</p>
+        </div>
+      </div>
+      <div class="artifacts-grid">
+        ${publishedArtifacts.map(a => `
+          <article class="artifact-card">
+            <div class="artifact-head">
+              <h3>${escapeHtml(a.title)}</h3>
+              <div class="artifact-tags">
+                ${a.team ? `<span class="artifact-tag">Team ${escapeHtml(a.team)}</span>` : ''}
+                ${a.type ? `<span class="artifact-tag">${escapeHtml(a.type)}</span>` : ''}
+              </div>
+            </div>
+            ${a.summary ? `<p class="artifact-summary">${escapeHtml(a.summary)}</p>` : ''}
+            <div class="artifact-foot">
+              ${a.updatedAt ? `<span class="artifact-meta">更新: ${escapeHtml(formatDisplayDate(a.updatedAt))}</span>` : '<span class="artifact-meta"></span>'}
+              ${a.url
+                ? `<a class="artifact-link" href="${escapeHtml(a.url)}" target="_blank" rel="noopener noreferrer">成果物を開く</a>`
+                : '<span class="artifact-link artifact-link-disabled">URL未設定</span>'}
+            </div>
+          </article>`).join('')}
+      </div>
+    </div>` : '';
+
+  el.innerHTML = `
+    <div class="about-section">
+      <div class="summary-banner">
+        <div>
+          <span class="section-kicker">Why This Initiative</span>
+          <h2>なぜ今、AIネイティブ開発に取り組むのか</h2>
+          <p>この施策の背景と、April Knightsとして目指す方向性をお伝えします。</p>
+        </div>
+      </div>
+      <div class="grid about-reason-grid">
+        <div class="card about-reason-card">
+          <span class="about-reason-num">01</span>
+          <h3>業界の変化と生産性格差</h3>
+          <p>AIコーディングツールの普及により、開発生産性に2〜5倍の格差が生まれつつあります。SES・受託開発の競争環境は急速に変化しており、今後数年で「AIを使いこなせるか否か」が個人・組織の競争力を左右します。</p>
+        </div>
+        <div class="card about-reason-card">
+          <span class="about-reason-num">02</span>
+          <h3>開発スタイルの転換</h3>
+          <p>AIネイティブ開発とは、AIを補助ツールとして使うのではなく、<strong>設計・実装・レビューの全工程でAIを前提とした開発スタイル</strong>への転換です。この施策は、その転換を実務の中で実践的に学ぶ場として設けました。</p>
+        </div>
+        <div class="card about-reason-card">
+          <span class="about-reason-num">03</span>
+          <h3>全社展開への先行投資</h3>
+          <p>第1回コホート（2026年4〜6月）は<strong>知見蓄積フェーズ</strong>です。参加チームの実践から得た学びを全社員に展開することを前提に取り組んでいます。これは試験的な施策ではなく、全員が歩むべき道への先行投資です。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <div class="card about-declaration-card">
+        <span class="section-kicker">Company Stance</span>
+        <h2>April Knightsとして</h2>
+        <div class="about-declaration-list">
+          <div class="about-declaration-item">
+            <span class="about-declaration-mark">✦</span>
+            <div>
+              <strong>AI活用を「推奨」から「標準」へ</strong>
+              <p>AI活用は個人の選択肢ではなく、全社員が習得すべき標準スキルとして位置づけます。</p>
+            </div>
+          </div>
+          <div class="about-declaration-item">
+            <span class="about-declaration-mark">✦</span>
+            <div>
+              <strong>全社員が当事者</strong>
+              <p>この施策は参加メンバーだけのものではありません。学んだノウハウは社内で共有・展開します。</p>
+            </div>
+          </div>
+          <div class="about-declaration-item">
+            <span class="about-declaration-mark">✦</span>
+            <div>
+              <strong>組織として支援する</strong>
+              <p>ツール環境・学習機会・導入サポートを会社が提供します。「どこから始めればいいかわからない」状態を解消します。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <div class="summary-banner">
+        <div>
+          <span class="section-kicker">Program Results</span>
+          <h2>第1回コホートの取り組み状況</h2>
+          <p>参加メンバーの活動データ（集計値）です。個人データは非公開です。</p>
+        </div>
+      </div>
+      ${statsHtml}
+    </div>
+
+    <div class="about-section">
+      <div class="card about-message-card">
+        <span class="section-kicker">Call to Action</span>
+        <h2>全社員の皆さんへ</h2>
+        <p class="overview-copy">
+          この施策に参加していなくても、今日からAIを業務に取り入れることができます。<br>
+          まずは小さな一歩から始めてみてください。
+        </p>
+        <div class="grid about-action-grid">
+          <div class="about-action-card">
+            <strong>今日からできること</strong>
+            <ul class="about-action-list">
+              <li>コードレビューをAIに依頼してみる</li>
+              <li>調査・分析の補助にAIを活用する</li>
+              <li>ドキュメントやメールの下書きをAIに任せる</li>
+            </ul>
+          </div>
+          <div class="about-action-card">
+            <strong>推奨ツール</strong>
+            <ul class="about-action-list">
+              <li>Claude Code — ターミナル統合AIコーディング</li>
+              <li>GitHub Copilot — IDE統合コード補完</li>
+              <li>Claude.ai — 汎用対話AI</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <div class="card about-next-card">
+        <div class="about-next-inner">
+          <div>
+            <span class="section-kicker">Next Cohort</span>
+            <h2>次期コホートへの参加</h2>
+            <p class="overview-copy">
+              第2回コホートは<strong>2026年7〜9月</strong>を予定しています。<br>
+              実務プロジェクトでAIを活用しながらスキルを高めたい方を歓迎します。
+            </p>
+          </div>
+          <a class="about-cta-btn" href="https://chat.google.com/" target="_blank" rel="noopener noreferrer">参加に関心がある方は社内チャットへ</a>
+        </div>
+      </div>
+    </div>
+
+    ${artifactsHtml}
+  `;
 }
