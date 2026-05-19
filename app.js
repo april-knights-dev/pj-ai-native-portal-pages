@@ -251,8 +251,7 @@ function renderApp() {
 
   // ナビゲーション構築
   const pages = [
-    { id: 'about',        label: '施策について',         roles: ['viewer'],                    enabled: true },
-    { id: 'overview',     label: '施策概要',             roles: ['admin', 'member', 'viewer'], enabled: CAPS.canViewOverview },
+    { id: 'about',        label: '施策について',         roles: ['admin', 'member', 'viewer'], enabled: true },
     { id: 'summary',      label: '全体サマリー',         roles: ['admin', 'member', 'viewer'], enabled: CAPS.canViewSummary },
     { id: 'artifacts',    label: '成果物',               roles: ['admin', 'member', 'viewer'], enabled: CAPS.canViewArtifacts },
     { id: 'member',       label: '個人アクティビティ',   roles: ['admin', 'member'],           enabled: CAPS.canViewMemberActivity },
@@ -1871,16 +1870,21 @@ function renderSelfEvalPage() {
   }
 }
 
-// ─── 施策について（viewer向け教育コンテンツ） ────────────────────────
+// ─── 施策について（全ロール共通エントリーページ） ────────────────────
 
 function renderAboutPage() {
   const el = document.getElementById('about-content');
   if (!el) return;
 
+  const role = CAPS ? (getPreviewRole() || D.role) : D.role;
+  const cohort = getCohort();
+  const teams = Array.isArray(cohort.teams) ? cohort.teams : [];
+  const memberCount = teams.reduce((sum, t) => sum + ((t && Array.isArray(t.members)) ? t.members.length : 0), 0);
+  const timelineMeta = buildPhaseTimeline(cohort);
+
   const claudeAgg = (D && D.claude_agg) || {};
   const totalSessions = claudeAgg.totalSessions || 0;
   const totalTokens   = claudeAgg.totalTokens || 0;
-
   const ghTeam = (D && Array.isArray(D.gh_team)) ? D.gh_team : [];
   const totalCommits = ghTeam.reduce((sum, r) => sum + (Number(r.commits) || 0), 0);
 
@@ -1890,24 +1894,55 @@ function renderAboutPage() {
     return String(n);
   };
 
-  const statsHtml = `
-    <div class="score-grid">
-      <div class="score-card">
-        <div class="val">${totalCommits > 0 ? fmtNum(totalCommits) : '-'}</div>
-        <div class="lbl">総コミット数</div>
-        <div class="meta">GitHub</div>
+  const phasesHtml = timelineMeta.items.map(item => `
+    <div class="timeline-item timeline-item-${item.status}">
+      <div class="timeline-item-head">
+        <span class="period">${item.period}</span>
+        <span class="timeline-status timeline-status-${item.status}">${item.statusLabel}</span>
       </div>
-      <div class="score-card">
-        <div class="val">${totalSessions > 0 ? fmtNum(totalSessions) : '-'}</div>
-        <div class="lbl">AI活用セッション数</div>
-        <div class="meta">Claude Code</div>
+      <h4>${item.name}</h4>
+      <p>${item.desc}</p>
+      <div class="timeline-meter"><span style="width:${item.progressPercent}%"></span></div>
+      <div class="timeline-meta">
+        <span>${item.rangeLabel}</span>
+        <strong>${item.progressPercent}%</strong>
       </div>
-      <div class="score-card">
-        <div class="val">${totalTokens > 0 ? fmtNum(totalTokens) : '-'}</div>
-        <div class="lbl">総トークン消費量</div>
-        <div class="meta">入出力合計</div>
+    </div>`).join('');
+
+  const teamsHtml = teams.map(t => {
+    const teamId = String((t && t.id) || '').toLowerCase();
+    const members = (t && Array.isArray(t.members)) ? t.members : [];
+    const po = (t && Array.isArray(t.po)) ? t.po : [];
+    return `
+    <div class="team-card team-${escapeHtml(teamId)}">
+      <div class="team-card-head">
+        <span class="badge badge-${escapeHtml(teamId)}">Team ${escapeHtml((t && t.id) || '-')}</span>
+        <h4>${escapeHtml((t && t.theme) || 'テーマ未設定')}</h4>
       </div>
+      <div class="members">メンバー: ${escapeHtml(members.join('・') || '未設定')} / リーダー: ${escapeHtml((t && t.leader) || '未設定')}</div>
+      <div class="team-po">PO: ${escapeHtml(po.join('・') || '未設定')}</div>
     </div>`;
+  }).join('');
+
+  const quickLinks = buildQuickLinks();
+  const quickLinksHtml = (role !== 'viewer' && CAPS && CAPS.canViewQuickLinks)
+    ? quickLinks.map((link) => {
+      const disabled = link.id === 'artifacts' && CAPS && !CAPS.canViewArtifacts;
+      if (disabled) {
+        return `<div class="quick-link quick-link-disabled">
+          <span class="quick-link-label">${escapeHtml(link.label)}</span>
+          <span class="quick-link-desc">閲覧権限がありません</span></div>`;
+      }
+      if (link.url) {
+        return `<a class="quick-link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">
+          <span class="quick-link-label">${escapeHtml(link.label)}</span>
+          <span class="quick-link-desc">${escapeHtml(link.desc)}</span></a>`;
+      }
+      return `<button class="quick-link quick-link-action" type="button" onclick="openPage('${link.internalPage || 'artifacts'}')">
+        <span class="quick-link-label">${escapeHtml(link.label)}</span>
+        <span class="quick-link-desc">${escapeHtml(link.desc)}</span></button>`;
+    }).join('')
+    : null;
 
   const publishedArtifacts = collectArtifacts().filter(a => {
     const v = String(a.visibility || '').toLowerCase();
@@ -2003,14 +2038,74 @@ function renderAboutPage() {
     </div>
 
     <div class="about-section">
+      <div class="grid grid-2">
+        <div class="card">
+          <span class="section-kicker">Program Overview</span>
+          <h2>プログラム概要</h2>
+          <p class="overview-copy">
+            AIネイティブ開発プロジェクトは、AI-first な開発手法を実践しながら
+            上流工程力・実装技術力・AI活用力・チームコミュニケーション力を総合的に鍛えます。<br>
+            参加メンバーは期ごとにローテーションし、社内のAIネイティブ人材を継続的に育成します。
+          </p>
+          <div class="overview-facts">
+            <div class="overview-fact"><span>Cohort</span><strong>${escapeHtml(cohort.name)} / ${escapeHtml(cohort.id)}</strong></div>
+            <div class="overview-fact"><span>Period</span><strong>${escapeHtml(cohort.period)}</strong></div>
+            <div class="overview-fact"><span>Weekly Session</span><strong>${escapeHtml(cohort.weeklySession)}</strong></div>
+            <div class="overview-fact"><span>Team Setup</span><strong>${teams.length}チーム / ${memberCount}名</strong></div>
+          </div>
+        </div>
+        <div class="card">
+          <span class="section-kicker">Timeline</span>
+          <h2>フェーズ・タイムライン</h2>
+          <div class="timeline-summary">
+            <div>
+              <span class="timeline-summary-label">Current Progress</span>
+              <strong>${escapeHtml(timelineMeta.overallLabel)}</strong>
+              <p>${escapeHtml(timelineMeta.todayLabel)} 時点の進行状況</p>
+            </div>
+            <div class="timeline-summary-progress">
+              <div class="timeline-summary-track"><span style="width:${timelineMeta.overallPercent}%"></span></div>
+              <strong>${timelineMeta.overallPercent}%</strong>
+            </div>
+          </div>
+          <div class="timeline">${phasesHtml}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <div class="card">
+        <span class="section-kicker">Teams</span>
+        <h2>チーム構成（${escapeHtml(cohort.name)}）</h2>
+        <div class="teams-grid">${teamsHtml || '<p class="subtle-text">チーム情報は準備中です。</p>'}</div>
+      </div>
+    </div>
+
+    <div class="about-section">
       <div class="summary-banner">
         <div>
           <span class="section-kicker">Program Results</span>
-          <h2>第1回コホートの取り組み状況</h2>
+          <h2>取り組み状況</h2>
           <p>参加メンバーの活動データ（集計値）です。個人データは非公開です。</p>
         </div>
       </div>
-      ${statsHtml}
+      <div class="score-grid">
+        <div class="score-card">
+          <div class="val">${totalCommits > 0 ? fmtNum(totalCommits) : '-'}</div>
+          <div class="lbl">総コミット数</div>
+          <div class="meta">GitHub</div>
+        </div>
+        <div class="score-card">
+          <div class="val">${totalSessions > 0 ? fmtNum(totalSessions) : '-'}</div>
+          <div class="lbl">AI活用セッション数</div>
+          <div class="meta">Claude Code</div>
+        </div>
+        <div class="score-card">
+          <div class="val">${totalTokens > 0 ? fmtNum(totalTokens) : '-'}</div>
+          <div class="lbl">総トークン消費量</div>
+          <div class="meta">入出力合計</div>
+        </div>
+      </div>
     </div>
 
     <div class="about-section">
@@ -2057,6 +2152,15 @@ function renderAboutPage() {
         </div>
       </div>
     </div>
+
+    ${quickLinksHtml ? `
+    <div class="about-section">
+      <div class="card quick-links-card">
+        <span class="section-kicker">Quick Links</span>
+        <h2>主要リンク</h2>
+        <div class="quick-link-grid">${quickLinksHtml}</div>
+      </div>
+    </div>` : ''}
 
     ${artifactsHtml}
   `;
