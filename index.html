@@ -443,7 +443,7 @@
                 <p><strong>Mac / Linux</strong>（ターミナル）</p>
                 <pre class="code-block">curl -fsSL https://april-knights-dev.github.io/pj-ai-native-portal-pages/setup-claude-hook.sh | bash</pre>
                 <p style="margin-top:12px"><strong>Windows</strong>（PowerShell）</p>
-                <pre class="code-block">iex (iwr 'https://april-knights-dev.github.io/pj-ai-native-portal-pages/setup-claude-hook.ps1' -UseBasicParsing).Content</pre>
+                <pre class="code-block">iex ([System.Text.Encoding]::UTF8.GetString((iwr 'https://april-knights-dev.github.io/pj-ai-native-portal-pages/setup-claude-hook.ps1' -UseBasicParsing).Content))</pre>
                 <p style="margin-top:8px;font-size:13px;color:var(--text-soft)">
                   実行すると <code>~/.claude/settings.json</code> に Stop hook が自動追加されます。
                 </p>

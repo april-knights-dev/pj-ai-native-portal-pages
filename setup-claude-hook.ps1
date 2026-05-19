@@ -1,5 +1,5 @@
 # AIネイティブ施策ポータル - Claude Code 使用状況 Stop hook インストーラー (Windows / PowerShell)
-# 使い方: iex (iwr 'https://april-knights-dev.github.io/pj-ai-native-portal-pages/setup-claude-hook.ps1' -UseBasicParsing).Content
+# 使い方: iex ([System.Text.Encoding]::UTF8.GetString((iwr 'https://april-knights-dev.github.io/pj-ai-native-portal-pages/setup-claude-hook.ps1' -UseBasicParsing).Content))
 $ErrorActionPreference = 'Stop'
 
 $HookUrl      = 'https://april-knights-dev.github.io/pj-ai-native-portal-pages/claude-code-hook.py'
@@ -49,7 +49,7 @@ if settings_file.exists():
         settings = {}
 
 stop_hooks = settings.setdefault('hooks', {}).setdefault('Stop', [])
-entry = {'hooks': [{'type': 'command', 'command': 'python3 ' + hook_path}]}
+entry = {'hooks': [{'type': 'command', 'command': '$Python ' + hook_path}]}
 
 already = any(
     hook_path in str(h.get('command', ''))
