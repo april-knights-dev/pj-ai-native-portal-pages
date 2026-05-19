@@ -217,11 +217,33 @@ function fetchData(token) {
 
 // ─── アプリ描画 ────────────────────────────────────────────────
 
+function getPreviewRole() {
+  if (D.role !== 'admin') return null;
+  const param = new URL(window.location.href).searchParams.get('preview_role');
+  if (param === 'viewer' || param === 'member') return param;
+  return null;
+}
+
 function renderApp() {
-  const role = D.role;
+  const actualRole = D.role;
+  const previewRole = getPreviewRole();
+  const role = previewRole || actualRole;
   const cohort = getCohort();
   applyLandingMeta(cohort);
   CAPS = resolveCapabilities(role, D.capabilities);
+
+  // デバッグバナー（preview_role 指定時のみ表示）
+  const existingBanner = document.getElementById('debug-preview-banner');
+  if (existingBanner) existingBanner.remove();
+  if (previewRole) {
+    const banner = document.createElement('div');
+    banner.id = 'debug-preview-banner';
+    const roleLabel = previewRole === 'viewer' ? '閲覧者（viewer）' : '参加メンバー（member）';
+    banner.innerHTML =
+      `<span>デバッグ: ${roleLabel} ビューでプレビュー中</span>` +
+      `<a href="${window.location.pathname}">実際のビューに戻る</a>`;
+    document.getElementById('app').prepend(banner);
+  }
 
   // ロールバッジ
   const badgeEl = document.getElementById('role-badge');

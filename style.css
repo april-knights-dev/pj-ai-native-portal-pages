@@ -2185,6 +2185,40 @@ code {
   }
 }
 
+/* ─── デバッグプレビューバナー ─────────────────────────────────────── */
+
+#debug-preview-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-sm);
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(240, 198, 107, 0.22),
+    rgba(240, 198, 107, 0.22) 8px,
+    rgba(255, 244, 218, 0.6) 8px,
+    rgba(255, 244, 218, 0.6) 16px
+  );
+  border: 1px solid var(--warning-line);
+  font-size: 13px;
+  font-weight: 600;
+  color: #7a5f00;
+}
+
+#debug-preview-banner a {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--warning-line);
+  color: #7a5f00;
+  text-decoration: none;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 /* ─── 施策について（viewer向け教育コンテンツ） ─────────────────────── */
 
 .about-section {
