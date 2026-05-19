@@ -103,7 +103,8 @@ def parse_session(session_file):
 
     timestamps = []
     turns = 0
-    seen_msg_ids = set()
+    seen_msg_ids = set()   # トークン重複排除用
+    seen_tool_ids = set()  # tool_use 重複排除用（msg_id とは独立）
     input_tokens = output_tokens = cache_read = cache_creation = 0
     model_counter = Counter()
     skill_events = []
@@ -143,27 +144,32 @@ def parse_session(session_file):
 
         elif rtype == 'assistant':
             msg_id = msg.get('id', '')
-            if msg_id and msg_id in seen_msg_ids:
-                continue
-            if msg_id:
-                seen_msg_ids.add(msg_id)
+            is_dup_msg = msg_id and msg_id in seen_msg_ids
+            if not is_dup_msg:
+                if msg_id:
+                    seen_msg_ids.add(msg_id)
+                usage = msg.get('usage') or {}
+                input_tokens    += usage.get('input_tokens', 0)
+                output_tokens   += usage.get('output_tokens', 0)
+                cache_read      += usage.get('cache_read_input_tokens', 0)
+                cache_creation  += usage.get('cache_creation_input_tokens', 0)
+                m = msg.get('model', '')
+                if m:
+                    model_counter[m] += 1
 
-            usage = msg.get('usage') or {}
-            input_tokens    += usage.get('input_tokens', 0)
-            output_tokens   += usage.get('output_tokens', 0)
-            cache_read      += usage.get('cache_read_input_tokens', 0)
-            cache_creation  += usage.get('cache_creation_input_tokens', 0)
-
-            m = msg.get('model', '')
-            if m:
-                model_counter[m] += 1
-
+            # tool_use は msg_id の重複に関わらず処理する（同一メッセージが複数回記録され
+            # 最終出現のみ tool_use ブロックを持つケースがあるため）
             content = msg.get('content', [])
             if not isinstance(content, list):
                 continue
             for block in content:
                 if not isinstance(block, dict) or block.get('type') != 'tool_use':
                     continue
+                tool_id = block.get('id', '')
+                if tool_id and tool_id in seen_tool_ids:
+                    continue
+                if tool_id:
+                    seen_tool_ids.add(tool_id)
                 name = block.get('name', '')
                 inp = block.get('input') or {}
                 if name == 'Skill':
