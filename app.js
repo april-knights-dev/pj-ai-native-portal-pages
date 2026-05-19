@@ -956,16 +956,28 @@ function renderSummaryInsights() {
   }
   panel.style.display = 'block';
 
+  const AI_INSIGHT_KIND_LABELS = {
+    encouragement: '応援メッセージ',
+    momentum: '勢いランキング',
+    focus: '注力ポイント',
+    weekly: '週次サマリー',
+    mvp: '今週の活躍',
+    claude_share: 'AI活用のすすめ',
+  };
   const insights = collectAiInsights();
-  const rows = insights.map((item, index) => ({
-    team: pickFirstString(item, ['team', 'target', 'scope', 'group', 'scope_id'], `Insight ${index + 1}`),
-    title: pickFirstString(item, ['title', 'headline', 'theme', 'kind'], '活動インサイト'),
-    summary: pickFirstString(item, ['summary', 'insight', 'analysis', 'message', 'text', 'content', 'body', 'highlight', 'mvp'], ''),
-    advice: pickFirstString(item, ['advice', 'recommendation', 'next_action', 'action', 'next_focus', 'next_week_focus'], ''),
-    cheer: pickFirstString(item, ['cheer', 'encouragement', 'cheer_message'], ''),
-    week: pickFirstString(item, ['week_start', 'week'], ''),
-    updatedAt: pickFirstString(item, ['updated_at', 'created_at', 'generated_at'], ''),
-  })).filter(row => row.summary || row.advice || row.cheer);
+  const rows = insights.map((item, index) => {
+    const rawKind = pickFirstString(item, ['kind', 'insight_type'], '');
+    const kindLabel = AI_INSIGHT_KIND_LABELS[rawKind] || rawKind || '活動インサイト';
+    return {
+      team: pickFirstString(item, ['team', 'target', 'scope', 'group', 'scope_id'], `Insight ${index + 1}`),
+      title: pickFirstString(item, ['title', 'headline', 'theme'], kindLabel),
+      summary: pickFirstString(item, ['summary', 'insight', 'analysis', 'message', 'text', 'content', 'body', 'highlight', 'mvp'], ''),
+      advice: pickFirstString(item, ['advice', 'recommendation', 'next_action', 'action', 'next_focus', 'next_week_focus'], ''),
+      cheer: pickFirstString(item, ['cheer', 'encouragement', 'cheer_message'], ''),
+      week: pickFirstString(item, ['week_start', 'week'], ''),
+      updatedAt: pickFirstString(item, ['updated_at', 'created_at', 'generated_at'], ''),
+    };
+  }).filter(row => row.summary || row.advice || row.cheer);
 
   if (!rows.length) {
     setText('ai-insights-meta', 'データ待ち');
@@ -973,9 +985,12 @@ function renderSummaryInsights() {
     return;
   }
 
-  const latest = rows.find(row => row.week || row.updatedAt) || rows[0];
+  const latestWeek = rows.reduce((max, r) => (r.week && r.week > max ? r.week : max), '');
+  const displayRows = latestWeek ? rows.filter(r => !r.week || r.week === latestWeek) : rows;
+
+  const latest = displayRows.find(row => row.week || row.updatedAt) || displayRows[0];
   setText('ai-insights-meta', latest.week ? `対象週 ${formatDisplayDate(latest.week)}` : `更新 ${formatDisplayDate(latest.updatedAt)}`);
-  container.innerHTML = rows.slice(0, 3).map((row) => `
+  container.innerHTML = displayRows.slice(0, 6).map((row) => `
     <article class="ai-insight-item">
       <div class="ai-insight-head">
         <span class="ai-insight-team">${escapeHtml(row.team)}</span>
