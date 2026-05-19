@@ -49,7 +49,7 @@ if settings_file.exists():
         settings = {}
 
 stop_hooks = settings.setdefault('hooks', {}).setdefault('Stop', [])
-entry = {'hooks': [{'type': 'command', 'command': '$Python ' + hook_path}]}
+entry = {'hooks': [{'type': 'command', 'command': '$Python "' + hook_path + '"'}]}
 
 already = any(
     hook_path in str(h.get('command', ''))
