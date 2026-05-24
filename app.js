@@ -2261,7 +2261,7 @@ async function submitWeeklyReport(weekLabel) {
   try {
     const resp = await fetch(GAS_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action:     'submit_weekly_report',
         token,
