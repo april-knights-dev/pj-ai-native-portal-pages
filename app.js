@@ -258,7 +258,8 @@ function renderApp() {
     { id: 'eval',         label: '評価スコア',           roles: ['admin', 'member'],           enabled: CAPS.canViewEvaluation },
     { id: 'gamification', label: 'ゲーミフィケーション', roles: ['admin', 'member'],           enabled: CAPS.canViewGamification },
     { id: 'selfevals',    label: '自己評価',             roles: ['admin', 'member'],           enabled: CAPS.canViewSelfEvaluations },
-    { id: 'claude',       label: 'AI活用',               roles: ['admin', 'member'],           enabled: CAPS.canViewClaudeUsage },
+    { id: 'claude',         label: 'AI活用',               roles: ['admin', 'member'],           enabled: CAPS.canViewClaudeUsage },
+    { id: 'weekly_report',  label: '週次報告',             roles: ['admin', 'member'],           enabled: true },
   ].filter(p => p.roles.includes(role) && p.enabled !== false);
 
   const nav = document.getElementById('main-nav');
@@ -632,6 +633,7 @@ function showPage(name, btn) {
   if (name === 'gamification') renderGamificationPage();
   if (name === 'selfevals')    renderSelfEvalPage();
   if (name === 'claude')       requestAnimationFrame(() => renderClaudePage());
+  if (name === 'weekly_report') renderWeeklyReportPage();
 }
 
 function openPage(name) {
@@ -2164,4 +2166,134 @@ function renderAboutPage() {
 
     ${artifactsHtml}
   `;
+}
+
+// ─── 週次報告 ──────────────────────────────────────────────────
+
+function renderWeeklyReportPage() {
+  const now  = new Date();
+  const day  = now.getDay();
+  const diff = day === 0 ? 6 : day - 1;
+  const mon  = new Date(now);
+  mon.setDate(now.getDate() - diff);
+  mon.setHours(0, 0, 0, 0);
+
+  const pad         = n => String(n).padStart(2, '0');
+  const weekLabel   = mon.toISOString().slice(0, 10);
+  const weekDisplay = `${mon.getFullYear()}/${pad(mon.getMonth()+1)}/${pad(mon.getDate())} 週`;
+
+  document.getElementById('weekly-report-content').innerHTML = `
+    <div class="summary-banner">
+      <div>
+        <span class="section-kicker">Weekly Report</span>
+        <h2>週次報告フォーム</h2>
+        <p>今週の進捗・課題・AI活用状況を入力して送信してください。送信後 Google Chat に通知されます。</p>
+      </div>
+      <div class="summary-banner-meta">
+        <span class="meta-label">対象週</span>
+        <strong>${weekDisplay}</strong>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <span class="section-kicker">Report Form</span>
+      <h2>報告内容</h2>
+
+      <div class="form-group" style="margin-top:16px">
+        <label class="form-label" for="wr-tasks">
+          <strong>進行中のタスクと進捗率</strong><span style="color:var(--danger)"> *</span>
+        </label>
+        <div style="font-size:12px;color:var(--text-soft);margin-bottom:6px">例: ログイン機能実装 60% / APIテスト 90% 完了</div>
+        <textarea id="wr-tasks" rows="4" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;resize:vertical;font-family:inherit"
+          placeholder="タスク名 進捗%&#10;タスク名 進捗%"></textarea>
+      </div>
+
+      <div class="form-group" style="margin-top:16px">
+        <label class="form-label" for="wr-blockers"><strong>ブロッカー・課題</strong></label>
+        <div style="font-size:12px;color:var(--text-soft);margin-bottom:6px">解決できていない問題や相談したいことを記載（なければ「なし」）</div>
+        <textarea id="wr-blockers" rows="3" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;resize:vertical;font-family:inherit"
+          placeholder="例: 外部API認証のエラーが解消できていない / なし"></textarea>
+      </div>
+
+      <div class="form-group" style="margin-top:16px">
+        <label class="form-label" for="wr-ai-usage"><strong>AI活用状況</strong></label>
+        <div style="font-size:12px;color:var(--text-soft);margin-bottom:6px">Claude Code / Claude.ai 等の活用内容・効果・気づき</div>
+        <textarea id="wr-ai-usage" rows="3" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;resize:vertical;font-family:inherit"
+          placeholder="例: Claudeでテストコードを自動生成（30分→5分に短縮）"></textarea>
+      </div>
+
+      <div class="form-group" style="margin-top:16px">
+        <label class="form-label" for="wr-misc"><strong>その他・共有事項</strong></label>
+        <div style="font-size:12px;color:var(--text-soft);margin-bottom:6px">チームや施策全体に共有したいこと（なければ空欄可）</div>
+        <textarea id="wr-misc" rows="3" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;resize:vertical;font-family:inherit"
+          placeholder="例: 来週はPOレビュー予定 / 参考ライブラリを見つけたので共有します"></textarea>
+      </div>
+
+      <div style="margin-top:24px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary" id="wr-submit-btn"
+          onclick="submitWeeklyReport('${weekLabel}')">送信して Google Chat に通知</button>
+        <span id="wr-status" style="font-size:14px"></span>
+      </div>
+    </div>
+  `;
+}
+
+async function submitWeeklyReport(weekLabel) {
+  const btn    = document.getElementById('wr-submit-btn');
+  const status = document.getElementById('wr-status');
+  const token  = localStorage.getItem(TOKEN_KEY);
+
+  const tasks    = (document.getElementById('wr-tasks').value    || '').trim();
+  const blockers = (document.getElementById('wr-blockers').value || '').trim();
+  const aiUsage  = (document.getElementById('wr-ai-usage').value || '').trim();
+  const misc     = (document.getElementById('wr-misc').value     || '').trim();
+
+  if (!tasks) {
+    status.textContent = '「進行中のタスクと進捗率」は必須です。';
+    status.style.color = 'var(--danger)';
+    return;
+  }
+
+  btn.disabled = true;
+  status.textContent = '送信中...';
+  status.style.color = 'var(--text-soft)';
+
+  try {
+    const resp = await fetch(GAS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action:     'submit_weekly_report',
+        token,
+        week_label: weekLabel,
+        tasks,
+        blockers,
+        ai_usage:   aiUsage,
+        misc,
+      }),
+    });
+    const data = await resp.json();
+
+    if (data.ok) {
+      status.textContent = '✓ 送信しました。Google Chat に通知が届いています。';
+      status.style.color = '#2e7d32';
+      ['wr-tasks', 'wr-blockers', 'wr-ai-usage', 'wr-misc'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+    } else {
+      const msg = data.error === 'unauthorized'      ? '認証エラー。再サインインしてください。'
+                : data.error === 'forbidden'         ? '送信権限がありません。'
+                : data.error === 'tasks_required'    ? '「進行中のタスク」は必須です。'
+                : data.error === 'weekly_report_disabled' ? 'この機能は現在無効です。管理者にお問い合わせください。'
+                : 'エラー: ' + (data.error || '不明');
+      status.textContent = msg;
+      status.style.color = 'var(--danger)';
+    }
+  } catch(err) {
+    status.textContent = '通信エラーが発生しました。時間をおいて再試行してください。';
+    status.style.color = 'var(--danger)';
+  } finally {
+    btn.disabled = false;
+  }
 }
