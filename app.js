@@ -2187,7 +2187,7 @@ function renderWeeklyReportPage() {
       <div>
         <span class="section-kicker">Weekly Report</span>
         <h2>週次報告フォーム</h2>
-        <p>今週の進捗・課題・AI活用状況を入力して送信してください。送信後 Google Chat に通知されます。</p>
+        <p>今週の進捗・課題・AI活用状況を入力して送信してください。</p>
       </div>
       <div class="summary-banner-meta">
         <span class="meta-label">対象週</span>
@@ -2231,7 +2231,7 @@ function renderWeeklyReportPage() {
 
       <div style="margin-top:24px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         <button class="btn btn-primary" id="wr-submit-btn"
-          onclick="submitWeeklyReport('${weekLabel}')">送信して Google Chat に通知</button>
+          onclick="submitWeeklyReport('${weekLabel}')">送信</button>
         <span id="wr-status" style="font-size:14px"></span>
       </div>
     </div>
@@ -2275,7 +2275,7 @@ async function submitWeeklyReport(weekLabel) {
     const data = await resp.json();
 
     if (data.ok) {
-      status.textContent = '✓ 送信しました。Google Chat に通知が届いています。';
+      status.textContent = '✓ 送信しました。';
       status.style.color = '#2e7d32';
       ['wr-tasks', 'wr-blockers', 'wr-ai-usage', 'wr-misc'].forEach(id => {
         const el = document.getElementById(id);
@@ -2285,7 +2285,6 @@ async function submitWeeklyReport(weekLabel) {
       const msg = data.error === 'unauthorized'      ? '認証エラー。再サインインしてください。'
                 : data.error === 'forbidden'         ? '送信権限がありません。'
                 : data.error === 'tasks_required'    ? '「進行中のタスク」は必須です。'
-                : data.error === 'weekly_report_disabled' ? 'この機能は現在無効です。管理者にお問い合わせください。'
                 : 'エラー: ' + (data.error || '不明');
       status.textContent = msg;
       status.style.color = 'var(--danger)';
